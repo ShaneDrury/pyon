@@ -1,0 +1,193 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pyon.lib.plotting &mdash; Pyon 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Pyon 0.1 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Pyon 0.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for pyon.lib.plotting</h1><div class="highlight"><pre>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">The point of this module is to be able to easily plot lattice QCD things - most often this will be correlators.</span>
+<span class="sd">We want to have the same syntax for common use plotting regardless of what program is used to plot it. So, the classes</span>
+<span class="sd">here implement a common API that forwards stuff to e.g. Pyplot and Gnuplot</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
+<span class="c">#from pyon.lib.fitfunction import pp_effective_mass</span>
+<span class="kn">from</span> <span class="nn">pyon.lib.register</span> <span class="kn">import</span> <span class="n">Register</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="n">__author__</span> <span class="o">=</span> <span class="s">&#39;srd1g10&#39;</span>
+
+<span class="n">registered_plotters</span> <span class="o">=</span> <span class="p">{}</span>
+
+
+<div class="viewcode-block" id="Plotter"><a class="viewcode-back" href="../../../pyon.lib.html#pyon.lib.plotting.Plotter">[docs]</a><span class="k">class</span> <span class="nc">Plotter</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A :class:`Plotter` plots hadrons like mesons, baryons. e.g. ::</span>
+
+<span class="sd">        &gt;&gt;&gt; from pyon.lib.meson import PseudoscalarMeson</span>
+<span class="sd">        &gt;&gt;&gt; from pyon.lib.fitfunction import pp_flat</span>
+<span class="sd">        &gt;&gt;&gt; data = [</span>
+<span class="sd">        ...    [pp_flat(t, 1.0, 1.0, 64) for t in range(64)]</span>
+<span class="sd">        ...    for _ in range(200) ]</span>
+<span class="sd">        &gt;&gt;&gt; had = PseudoscalarMeson(data, masses=(0.05, 0.05))</span>
+<span class="sd">        &gt;&gt;&gt; plot_hadron(had)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_val</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+<div class="viewcode-block" id="Plotter.plot"><a class="viewcode-back" href="../../../pyon.lib.html#pyon.lib.plotting.Plotter.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">pass</span>
+</div>
+<div class="viewcode-block" id="Plotter.show"><a class="viewcode-back" href="../../../pyon.lib.html#pyon.lib.plotting.Plotter.show">[docs]</a>    <span class="k">def</span> <span class="nf">show</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+</div></div>
+<span class="nd">@Register</span><span class="p">(</span><span class="n">registered_plotters</span><span class="p">,</span> <span class="s">&#39;pyplot&#39;</span><span class="p">)</span>
+<div class="viewcode-block" id="PyplotPlotter"><a class="viewcode-back" href="../../../pyon.lib.html#pyon.lib.plotting.PyplotPlotter">[docs]</a><span class="k">class</span> <span class="nc">PyplotPlotter</span><span class="p">(</span><span class="n">Plotter</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Uses matplotlib.pyplot to do the plotting.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">PyplotPlotter</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_val</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">):</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="s">&#39;all&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">False</span>
+
+<div class="viewcode-block" id="PyplotPlotter.plot"><a class="viewcode-back" href="../../../pyon.lib.html#pyon.lib.plotting.PyplotPlotter.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">yerr</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">log_scale</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set up the fields of the object to the specifics of the plot.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">title</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="bp">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ax</span><span class="o">.</span><span class="n">errorbar</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">yerr</span><span class="o">=</span><span class="n">yerr</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="PyplotPlotter.set_scale"><a class="viewcode-back" href="../../../pyon.lib.html#pyon.lib.plotting.PyplotPlotter.set_scale">[docs]</a>    <span class="k">def</span> <span class="nf">set_scale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_scale</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">y_scale</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">x_scale</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ax</span><span class="o">.</span><span class="n">set_xscale</span><span class="p">(</span><span class="n">x_scale</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">y_scale</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ax</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="n">y_scale</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="PyplotPlotter.show"><a class="viewcode-back" href="../../../pyon.lib.html#pyon.lib.plotting.PyplotPlotter.show">[docs]</a>    <span class="k">def</span> <span class="nf">show</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+</div></div>
+<div class="viewcode-block" id="plot_hadron"><a class="viewcode-back" href="../../../pyon.lib.html#pyon.lib.plotting.plot_hadron">[docs]</a><span class="k">def</span> <span class="nf">plot_hadron</span><span class="p">(</span><span class="n">hadron</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">effective_mass</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Simple common use case. Defaults to PyplotPlotter.</span>
+
+<span class="sd">    :param hadron: The :class:`Hadron &lt;hadron.Hadron&gt;` object to plot.</span>
+<span class="sd">    :param \*\*kwargs: The keyword arguments to pass to :func:`matplotlib.pyplot.errorbar`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">plotter</span> <span class="o">=</span> <span class="n">PyplotPlotter</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">effective_mass</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">hadron</span><span class="o">.</span><span class="n">effective_mass</span>
+        <span class="n">errs</span> <span class="o">=</span> <span class="n">hadron</span><span class="o">.</span><span class="n">effective_mass_errs</span>
+        <span class="n">y_scale</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">hadron</span><span class="o">.</span><span class="n">central_data</span>
+        <span class="n">errs</span> <span class="o">=</span> <span class="n">hadron</span><span class="o">.</span><span class="n">central_errs</span>
+        <span class="n">y_scale</span> <span class="o">=</span> <span class="s">&#39;log&#39;</span>
+    <span class="n">t_range</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">hadron</span><span class="o">.</span><span class="n">time_extent</span><span class="o">//</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">t_range</span><span class="p">]</span>
+    <span class="n">errs</span> <span class="o">=</span> <span class="p">[</span><span class="n">errs</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">t_range</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">title</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">title</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">hadron</span><span class="p">)</span>
+    <span class="n">plotter</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">t_range</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">yerr</span><span class="o">=</span><span class="n">errs</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">plotter</span><span class="o">.</span><span class="n">set_scale</span><span class="p">(</span><span class="n">y_scale</span><span class="o">=</span><span class="n">y_scale</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">plotter</span>
+</pre></div></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Pyon 0.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Shane Drury.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

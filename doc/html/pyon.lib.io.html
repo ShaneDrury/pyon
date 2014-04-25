@@ -1,0 +1,172 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pyon.lib.io package &mdash; Pyon 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Pyon 0.1 documentation" href="index.html" />
+    <link rel="up" title="pyon.lib package" href="pyon.lib.html" />
+    <link rel="next" title="pyon.test package" href="pyon.test.html" />
+    <link rel="prev" title="pyon.lib package" href="pyon.lib.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="pyon.test.html" title="pyon.test package"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="pyon.lib.html" title="pyon.lib package"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Pyon 0.1 documentation</a> &raquo;</li>
+          <li><a href="pyon.html" >pyon package</a> &raquo;</li>
+          <li><a href="pyon.lib.html" accesskey="U">pyon.lib package</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="pyon-lib-io-package">
+<h1>pyon.lib.io package<a class="headerlink" href="#pyon-lib-io-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-pyon.lib.io.folder">
+<span id="pyon-lib-io-folder-module"></span><h2>pyon.lib.io.folder module<a class="headerlink" href="#module-pyon.lib.io.folder" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="pyon.lib.io.folder.get_list_of_files">
+<tt class="descclassname">pyon.lib.io.folder.</tt><tt class="descname">get_list_of_files</tt><big>(</big><em>folder</em><big>)</big><a class="reference internal" href="_modules/pyon/lib/io/folder.html#get_list_of_files"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyon.lib.io.folder.get_list_of_files" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns list of files in folder with the folder prepended.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyon.lib.io.folder.sorted_ls">
+<tt class="descclassname">pyon.lib.io.folder.</tt><tt class="descname">sorted_ls</tt><big>(</big><em>path</em><big>)</big><a class="reference internal" href="_modules/pyon/lib/io/folder.html#sorted_ls"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyon.lib.io.folder.sorted_ls" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sort by name</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-pyon.lib.io.formats">
+<span id="pyon-lib-io-formats-module"></span><h2>pyon.lib.io.formats module<a class="headerlink" href="#module-pyon.lib.io.formats" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="pyon.lib.io.formats.parse_iwasaki_32c_charged_meson_file">
+<tt class="descclassname">pyon.lib.io.formats.</tt><tt class="descname">parse_iwasaki_32c_charged_meson_file</tt><big>(</big><em>f</em><big>)</big><a class="reference internal" href="_modules/pyon/lib/io/formats.html#parse_iwasaki_32c_charged_meson_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyon.lib.io.formats.parse_iwasaki_32c_charged_meson_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse all the data from an Iwasaki Charged Meson file e.g.     meson_BOX_RELOADED.src0.ch1-0.3333333333.ch2-0.3333333333.m10.03.m20.03.dat.510</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-pyon.lib.io.parse">
+<span id="pyon-lib-io-parse-module"></span><h2>pyon.lib.io.parse module<a class="headerlink" href="#module-pyon.lib.io.parse" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="pyon.lib.io.parse.filter_correlators">
+<tt class="descclassname">pyon.lib.io.parse.</tt><tt class="descname">filter_correlators</tt><big>(</big><em>corrs</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pyon/lib/io/parse.html#filter_correlators"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyon.lib.io.parse.filter_correlators" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-pyon.lib.io">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-pyon.lib.io" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">pyon.lib.io package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-pyon.lib.io.folder">pyon.lib.io.folder module</a></li>
+<li><a class="reference internal" href="#module-pyon.lib.io.formats">pyon.lib.io.formats module</a></li>
+<li><a class="reference internal" href="#module-pyon.lib.io.parse">pyon.lib.io.parse module</a></li>
+<li><a class="reference internal" href="#module-pyon.lib.io">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="pyon.lib.html"
+                        title="previous chapter">pyon.lib package</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="pyon.test.html"
+                        title="next chapter">pyon.test package</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/pyon.lib.io.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="pyon.test.html" title="pyon.test package"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="pyon.lib.html" title="pyon.lib package"
+             >previous</a> |</li>
+        <li><a href="index.html">Pyon 0.1 documentation</a> &raquo;</li>
+          <li><a href="pyon.html" >pyon package</a> &raquo;</li>
+          <li><a href="pyon.lib.html" >pyon.lib package</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Shane Drury.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

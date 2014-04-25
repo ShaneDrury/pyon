@@ -1,0 +1,153 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pyon.lib.io.formats &mdash; Pyon 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Pyon 0.1 documentation" href="../../../../index.html" />
+    <link rel="up" title="Module code" href="../../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../../index.html">Pyon 0.1 documentation</a> &raquo;</li>
+          <li><a href="../../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for pyon.lib.io.formats</h1><div class="highlight"><pre>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="n">__author__</span> <span class="o">=</span> <span class="s">&#39;srd1g10&#39;</span>
+
+<span class="n">RE_SCIENTIFIC</span> <span class="o">=</span> <span class="s">&quot;[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?&quot;</span>  <span class="c"># Matches scientific notation e.g. 1.2345e+06</span>
+
+<span class="n">IWASAKI_REGEX</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s">&#39;filename&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s">&quot;\w+\.src\d+\.&quot;</span>
+                 <span class="s">&quot;ch1(?P&lt;charge1&gt;{res})\.ch2(?P&lt;charge2&gt;{res})\.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">res</span><span class="o">=</span><span class="n">RE_SCIENTIFIC</span><span class="p">)</span> <span class="o">+</span>
+                 <span class="s">&quot;m1(?P&lt;mass1&gt;{res})\.m2(?P&lt;mass2&gt;{res})\.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">res</span><span class="o">=</span><span class="n">RE_SCIENTIFIC</span><span class="p">)</span> <span class="o">+</span>
+                 <span class="s">&quot;dat\.(?P&lt;config_number&gt;\d+)&quot;</span><span class="p">),</span>
+    <span class="s">&#39;data&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s">&quot;^STARTPROP</span><span class="se">\n</span><span class="s">&quot;</span>
+             <span class="s">&quot;^MASSES:\s\s(?P&lt;m1&gt;{res})\s{{3}}(?P&lt;m2&gt;{res})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">res</span><span class="o">=</span><span class="n">RE_SCIENTIFIC</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span>
+             <span class="s">&quot;^SOURCE:\s(?P&lt;source&gt;\w+)</span><span class="se">\n</span><span class="s">&quot;</span>
+             <span class="s">&quot;^SINKS:\s(?P&lt;sink&gt;\w+)</span><span class="se">\n</span><span class="s">&quot;</span>
+             <span class="s">&quot;(?P&lt;data&gt;&quot;</span> <span class="o">+</span> <span class="s">&quot;(^\d+\s\s{res}\s\s{res}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">res</span><span class="o">=</span><span class="n">RE_SCIENTIFIC</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;</span><span class="se">\n</span><span class="s">)+)&quot;</span>
+             <span class="s">&quot;^ENDPROP&quot;</span><span class="p">),</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="parse_iwasaki_32c_charged_meson_file"><a class="viewcode-back" href="../../../../pyon.lib.io.html#pyon.lib.io.formats.parse_iwasaki_32c_charged_meson_file">[docs]</a><span class="k">def</span> <span class="nf">parse_iwasaki_32c_charged_meson_file</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parse all the data from an Iwasaki Charged Meson file e.g. \</span>
+<span class="sd">    meson_BOX_RELOADED.src0.ch1-0.3333333333.ch2-0.3333333333.m10.03.m20.03.dat.510</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">raw_data</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+    <span class="n">fname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">IWASAKI_REGEX</span><span class="p">[</span><span class="s">&#39;filename&#39;</span><span class="p">],</span> <span class="n">fname</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">m</span><span class="p">:</span>
+        <span class="n">charge_1</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s">&#39;charge1&#39;</span><span class="p">))</span>
+        <span class="n">charge_2</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s">&#39;charge2&#39;</span><span class="p">))</span>
+        <span class="n">mass_1</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s">&#39;mass1&#39;</span><span class="p">))</span>
+        <span class="n">mass_2</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s">&#39;mass2&#39;</span><span class="p">))</span>
+        <span class="n">config_number</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s">&#39;config_number&#39;</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">re</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Cannot match filename&quot;</span><span class="p">)</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">IWASAKI_REGEX</span><span class="p">[</span><span class="s">&#39;data&#39;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">MULTILINE</span><span class="p">)</span>
+    <span class="n">matched</span> <span class="o">=</span> <span class="p">[</span><span class="n">m</span><span class="o">.</span><span class="n">groupdict</span><span class="p">()</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">finditer</span><span class="p">(</span><span class="n">raw_data</span><span class="p">)]</span>
+    <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">matched</span><span class="p">:</span>
+        <span class="n">re_data</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">im_data</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">time_slices</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">match</span><span class="p">[</span><span class="s">&#39;data&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">n</span><span class="p">,</span> <span class="n">re_c</span><span class="p">,</span> <span class="n">im_c</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="n">re_c</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">re_c</span><span class="p">)</span>
+                <span class="n">im_c</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">im_c</span><span class="p">)</span>
+                <span class="n">n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+                <span class="n">re_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">re_c</span><span class="p">)</span>
+                <span class="n">im_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">im_c</span><span class="p">)</span>
+                <span class="n">time_slices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="k">pass</span>
+        <span class="n">dic</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;source&#39;</span><span class="p">:</span> <span class="n">match</span><span class="p">[</span><span class="s">&#39;source&#39;</span><span class="p">],</span> <span class="s">&#39;sink&#39;</span><span class="p">:</span> <span class="n">match</span><span class="p">[</span><span class="s">&#39;sink&#39;</span><span class="p">],</span> <span class="s">&#39;data&#39;</span><span class="p">:</span> <span class="n">re_data</span><span class="p">,</span> <span class="s">&#39;im_data&#39;</span><span class="p">:</span> <span class="n">im_data</span><span class="p">,</span>
+               <span class="s">&#39;time_slices&#39;</span><span class="p">:</span> <span class="n">time_slices</span><span class="p">,</span> <span class="s">&#39;masses&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">mass_1</span><span class="p">,</span> <span class="n">mass_2</span><span class="p">),</span> <span class="s">&#39;charges&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">charge_1</span><span class="p">,</span> <span class="n">charge_2</span><span class="p">),</span>
+               <span class="s">&#39;config_number&#39;</span><span class="p">:</span> <span class="n">config_number</span><span class="p">}</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dic</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">data</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../../index.html">Pyon 0.1 documentation</a> &raquo;</li>
+          <li><a href="../../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Shane Drury.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

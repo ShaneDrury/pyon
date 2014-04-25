@@ -1,0 +1,248 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pyon.lib.fitting &mdash; Pyon 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Pyon 0.1 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Pyon 0.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for pyon.lib.fitting</h1><div class="highlight"><pre>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span><span class="p">,</span> <span class="n">namedtuple</span>
+<span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">minimize</span>
+<span class="kn">from</span> <span class="nn">pyon.lib.register</span> <span class="kn">import</span> <span class="n">Register</span>
+<span class="kn">from</span> <span class="nn">pyon.lib.resampling</span> <span class="kn">import</span> <span class="n">Jackknife</span><span class="p">,</span> <span class="n">registered_resamplers</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">pyon.lib.statistics</span> <span class="kn">import</span> <span class="n">get_inverse_cov_matrix</span>
+
+<span class="n">__author__</span> <span class="o">=</span> <span class="s">&#39;srd1g10&#39;</span>
+
+<span class="n">registered_fitters</span> <span class="o">=</span> <span class="p">{}</span>
+
+<span class="n">FitParams</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s">&#39;FitParams&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s">&#39;average_params&#39;</span><span class="p">,</span> <span class="s">&#39;errs&#39;</span><span class="p">,</span> <span class="s">&#39;resampled_params&#39;</span><span class="p">])</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">:class:`FitParams` is a namedtuple that packages the things that :func:`Fitter.fit` returns.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="Fitter"><a class="viewcode-back" href="../../../pyon.lib.html#pyon.lib.fitting.Fitter">[docs]</a><span class="k">class</span> <span class="nc">Fitter</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    :class:`Fitter` fits data.</span>
+
+<span class="sd">    :param fit_func: The function we fit to. Used to calculate the chi squared</span>
+<span class="sd">    :param resampler: The way we calculate the errors e.g. :class:`Jackknife &lt;resampling.Jackknife&gt;`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fit_func</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">resampler</span><span class="o">=</span><span class="s">&#39;jackknife&#39;</span><span class="p">,</span> <span class="n">resampler_args</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fit_func</span> <span class="o">=</span> <span class="n">fit_func</span>
+        <span class="k">if</span> <span class="n">resampler_args</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">resampler_args</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">resampler</span> <span class="o">=</span> <span class="n">registered_resamplers</span><span class="p">[</span><span class="n">resampler</span><span class="p">](</span><span class="o">**</span><span class="n">resampler_args</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Fitter.fit"><a class="viewcode-back" href="../../../pyon.lib.html#pyon.lib.fitting.Fitter.fit">[docs]</a>    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">initial_value</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">fit_range</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">covariant</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">correlated</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Performs the fit. A specific implementation will use a certain method of minimizing the chi-squared of</span>
+<span class="sd">        ``fit_func`` against the ``data``.</span>
+
+<span class="sd">        :param data: Iterable set of independent measurements that the fit function models.</span>
+<span class="sd">        :param errors: Iterable set of errors of each measurement.</span>
+<span class="sd">        :param initial_value: Initial guesses of the best fit of the parameters in ``fit_func``.</span>
+<span class="sd">        :type initial_value: iterable</span>
+<span class="sd">        :param fit_range: Iterable set of numbers that determine the data points used in the fit. Can be a list of</span>
+<span class="sd">            iterables if the fit function requires more than one fit range e.g. simultaneous fit.</span>
+<span class="sd">        :type fit_range: iterable or list of iterables</span>
+<span class="sd">        :param covariant: Set the fit as covariant.</span>
+<span class="sd">        :type covariant: bool</span>
+<span class="sd">        :param correlated: Set the fit as correlated.</span>
+<span class="sd">        :type correlated: bool</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">resampled_params</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+        <span class="n">fit_range</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">fit_range</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">covariant</span><span class="p">:</span>
+            <span class="n">pared_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">d</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">data</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">fit_range</span><span class="p">])</span>
+            <span class="n">inv_covar</span> <span class="o">=</span> <span class="n">get_inverse_cov_matrix</span><span class="p">(</span><span class="n">pared_data</span><span class="p">,</span> <span class="n">correlated</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">inv_covar</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">resampler</span><span class="o">.</span><span class="n">generate_samples</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+            <span class="n">fit_param</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fit_one</span><span class="p">(</span><span class="n">sample</span><span class="p">,</span> <span class="n">errors</span><span class="p">,</span> <span class="n">initial_value</span><span class="p">,</span> <span class="n">fit_range</span><span class="p">,</span>
+                                     <span class="n">inverse_covariance</span><span class="o">=</span><span class="n">inv_covar</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">fit_param</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">resampled_params</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+        <span class="n">average_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fit_one</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">errors</span><span class="p">,</span> <span class="n">initial_value</span><span class="p">,</span> <span class="n">fit_range</span><span class="p">,</span>
+                                      <span class="n">inverse_covariance</span><span class="o">=</span><span class="n">inv_covar</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="c">#average_params = {k: np.average(v, axis=0) for k, v in resampled_params.items()}</span>
+        <span class="n">errs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resampler</span><span class="o">.</span><span class="n">calculate_fit_errors</span><span class="p">(</span><span class="n">average_params</span><span class="p">,</span> <span class="n">resampled_params</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">FitParams</span><span class="p">(</span><span class="n">average_params</span><span class="p">,</span> <span class="n">errs</span><span class="p">,</span> <span class="n">resampled_params</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Fitter.fit_chi_sq"><a class="viewcode-back" href="../../../pyon.lib.html#pyon.lib.fitting.Fitter.fit_chi_sq">[docs]</a>    <span class="k">def</span> <span class="nf">fit_chi_sq</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Implement this in a derived class e.g. :func:`ScipyFitter.fit_chi_sq`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s">&quot;Implement this in a derived class.&quot;</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Fitter.fit_one"><a class="viewcode-back" href="../../../pyon.lib.html#pyon.lib.fitting.Fitter.fit_one">[docs]</a>    <span class="k">def</span> <span class="nf">fit_one</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">initial_value</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">fit_range</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">inverse_covariance</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">chi_sq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_chi_sq</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="n">errors</span><span class="p">,</span>
+                                      <span class="n">fit_range</span><span class="o">=</span><span class="n">fit_range</span><span class="p">,</span> <span class="n">inverse_covariance</span><span class="o">=</span><span class="n">inverse_covariance</span><span class="p">)</span>
+        <span class="n">fit_param</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fit_chi_sq</span><span class="p">(</span><span class="n">chi_sq</span><span class="p">,</span> <span class="n">initial_value</span><span class="o">=</span><span class="n">initial_value</span><span class="p">,</span>
+                                    <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">fit_param</span>
+</div>
+<div class="viewcode-block" id="Fitter.generate_chi_sq"><a class="viewcode-back" href="../../../pyon.lib.html#pyon.lib.fitting.Fitter.generate_chi_sq">[docs]</a>    <span class="k">def</span> <span class="nf">generate_chi_sq</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">inverse_covariance</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">fit_range</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">errors</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">errors</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">data</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">inverse_covariance</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">def</span> <span class="nf">chi_sq</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+                <span class="n">pared_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">data</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">fit_range</span><span class="p">])</span>
+                <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fit_func</span><span class="p">(</span><span class="n">fit_range</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span> <span class="o">-</span> <span class="n">pared_data</span><span class="p">)</span>
+                <span class="n">m</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">inverse_covariance</span><span class="p">)</span>
+                <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+                <span class="n">c2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">c2</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">fit_range</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">def</span> <span class="nf">chi_sq</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+                <span class="k">return</span> <span class="nb">sum</span><span class="p">([(</span><span class="n">data</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">fit_func</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">))</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="n">errors</span><span class="p">[</span><span class="n">t</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span>
+                            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">fit_range</span><span class="p">])</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">fit_range</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">chi_sq</span>
+
+</div></div>
+<span class="nd">@Register</span><span class="p">(</span><span class="n">registered_fitters</span><span class="p">,</span> <span class="s">&#39;scipy&#39;</span><span class="p">)</span>
+<div class="viewcode-block" id="ScipyFitter"><a class="viewcode-back" href="../../../pyon.lib.html#pyon.lib.fitting.ScipyFitter">[docs]</a><span class="k">class</span> <span class="nc">ScipyFitter</span><span class="p">(</span><span class="n">Fitter</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Inherits from :class:`Fitter`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="ScipyFitter.fit_chi_sq"><a class="viewcode-back" href="../../../pyon.lib.html#pyon.lib.fitting.ScipyFitter.fit_chi_sq">[docs]</a>    <span class="k">def</span> <span class="nf">fit_chi_sq</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chi_sq</span><span class="p">,</span> <span class="n">initial_value</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s">&#39;L-BFGS-B&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Uses scipy&#39;s :func:`minimize &lt;scipy.optimize.minimize&gt;` function to minimize the ``chi_sq`` of the fit.</span>
+
+<span class="sd">        :param initial_value: Initial guesses of the best fit of the parameters in ``fit_func``</span>
+<span class="sd">        :type initial_value: Iterable</span>
+<span class="sd">        :param \*\*kwargs: Extra parameters to pass in to :func:`minimize &lt;scipy.optimize.minimize&gt;`</span>
+<span class="sd">        :rtype: dict</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">chi_sq</span><span class="p">,</span> <span class="n">initial_value</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">fit_params</span> <span class="o">=</span> <span class="n">populate_dict_args</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fit_func</span><span class="p">,</span> <span class="n">out</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">fit_params</span>
+
+</div></div>
+<div class="viewcode-block" id="populate_dict_args"><a class="viewcode-back" href="../../../pyon.lib.html#pyon.lib.fitting.populate_dict_args">[docs]</a><span class="k">def</span> <span class="nf">populate_dict_args</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">vals</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A minimization function may return unnamed estimates of the variables. This function maps those values to the</span>
+<span class="sd">    names of the function arguments. Assume that the first argument of ``func`` the independent variable - we skip it.</span>
+
+<span class="sd">    :param func: A function with at least two arguments. The first argument is assumed to be an independent variable</span>
+<span class="sd">        and is skipped.</span>
+<span class="sd">    :param vals: Values that are associated with each argument.</span>
+<span class="sd">    :rtype: dict</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">func_args</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getargspec</span><span class="p">(</span><span class="n">func</span><span class="p">)</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="k">return</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">func_args</span><span class="p">,</span> <span class="n">vals</span><span class="p">)}</span>
+
+</div>
+<div class="viewcode-block" id="fit_hadron"><a class="viewcode-back" href="../../../pyon.lib.html#pyon.lib.fitting.fit_hadron">[docs]</a><span class="k">def</span> <span class="nf">fit_hadron</span><span class="p">(</span><span class="n">hadron</span><span class="p">,</span> <span class="n">initial_value</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">fit_range</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">covariant</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Common use case, uses Scipy for fitting and Jackknife for errors.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">fitter</span> <span class="o">=</span> <span class="n">ScipyFitter</span><span class="p">(</span><span class="n">fit_func</span><span class="o">=</span><span class="n">hadron</span><span class="o">.</span><span class="n">fit_func</span><span class="p">,</span> <span class="n">resampler</span><span class="o">=</span><span class="s">&#39;jackknife&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">fitter</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">hadron</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">hadron</span><span class="o">.</span><span class="n">central_errs</span><span class="p">,</span> <span class="n">initial_value</span><span class="o">=</span><span class="n">initial_value</span><span class="p">,</span> <span class="n">fit_range</span><span class="o">=</span><span class="n">fit_range</span><span class="p">,</span>
+                      <span class="n">covariant</span><span class="o">=</span><span class="n">covariant</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="c"># def fit(data=None, errors=None, initial_value=None, fit_range=None, covariant=False, correlated=False,</span>
+    <span class="c">#         method=None, fit_func=None, resampler=None, **kwargs):</span>
+    <span class="c">#     &quot;&quot;&quot;</span>
+    <span class="c">#     Finds the best fit parameters of the data from ``fit_func`` and the errors calculated with ``resampler``. This is</span>
+    <span class="c">#     a loose wrapper around the :class:`Fitter` classes. Has the same arguments as :func:`Fitter.fit`.</span>
+    <span class="c">#</span>
+    <span class="c">#     :param data: Data from :class:`Hadron &lt;hadron.Hadron&gt;`.</span>
+    <span class="c">#     :param \*args: Same arguments as :func:`Fitter.fit`.</span>
+    <span class="c">#     :param \*\*kwargs: extra arguments to pass to :func:`Fitter.fit_chi_sq`</span>
+    <span class="c">#     &quot;&quot;&quot;</span>
+    <span class="c">#     if method is None:</span>
+    <span class="c">#         raise TypeError(&quot;Fit method not specified, must be one of {}&quot;.format(registered_fitters.keys()))</span>
+    <span class="c">#     fitter = registered_fitters[method](fit_func=fit_func, resampler=resampler)</span>
+    <span class="c">#     data = data</span>
+    <span class="c">#     return fitter.fit(data, errors, initial_value, fit_range, covariant, correlated, **kwargs)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Pyon 0.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Shane Drury.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

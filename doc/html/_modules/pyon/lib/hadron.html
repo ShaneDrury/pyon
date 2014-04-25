@@ -1,0 +1,226 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pyon.lib.hadron &mdash; Pyon 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Pyon 0.1 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Pyon 0.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for pyon.lib.hadron</h1><div class="highlight"><pre>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">pyon.lib.fitfunction</span> <span class="kn">import</span> <span class="n">effective_mass_pp</span>
+<span class="kn">from</span> <span class="nn">pyon.lib.resampling</span> <span class="kn">import</span> <span class="n">Jackknife</span>
+<span class="kn">import</span> <span class="nn">json</span>
+
+
+<div class="viewcode-block" id="Hadron"><a class="viewcode-back" href="../../../pyon.lib.html#pyon.lib.hadron.Hadron">[docs]</a><span class="k">class</span> <span class="nc">Hadron</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    :class:`Hadron` is a representation of a QCD hadron. A particular class that inherits from this will specify the \</span>
+<span class="sd">    ``fit_func`` and how to plot the data that represents a certain correlation function.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">config_numbers</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">sink</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">im_data</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">time_slices</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span>
+        <span class="k">if</span> <span class="n">sort</span> <span class="ow">and</span> <span class="n">config_numbers</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">config_numbers</span> <span class="o">=</span> <span class="n">config_numbers</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">config_numbers</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_extent</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>  <span class="c"># Assume it&#39;s the same for samples</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fit_func</span> <span class="o">=</span> <span class="bp">None</span>  <span class="c"># define this in the derived class</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">source</span> <span class="o">=</span> <span class="n">source</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sink</span> <span class="o">=</span> <span class="n">sink</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">im_data</span> <span class="o">=</span> <span class="n">im_data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_slices</span> <span class="o">=</span> <span class="n">time_slices</span>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="Hadron.from_parsed_data"><a class="viewcode-back" href="../../../pyon.lib.html#pyon.lib.hadron.Hadron.from_parsed_data">[docs]</a>    <span class="k">def</span> <span class="nf">from_parsed_data</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">parsed_data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a :class:`Hadron` from ``parsed_data``. This handles all the duplicate information that the parsed data</span>
+<span class="sd">        might have. The ``parsed_data`` will be the return value from e.g. \</span>
+<span class="sd">        :func:`parse_iwasaki_32c_charged_meson_file &lt;.io.formats.parse_iwasaki_32c_charged_meson_file&gt;`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">[</span><span class="n">fd</span><span class="p">[</span><span class="s">&#39;data&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">fd</span> <span class="ow">in</span> <span class="n">parsed_data</span><span class="p">]</span>
+        <span class="n">config_numbers</span> <span class="o">=</span> <span class="p">[</span><span class="n">fd</span><span class="p">[</span><span class="s">&#39;config_number&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">fd</span> <span class="ow">in</span> <span class="n">parsed_data</span><span class="p">]</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="n">parsed_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c"># assume all parameters are the same as the first one</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;data&#39;</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;config_number&#39;</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;config_numbers&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">config_numbers</span>
+        <span class="k">return</span> <span class="n">cls</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</div>
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="k">def</span> <span class="nf">_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+<div class="viewcode-block" id="Hadron.dump"><a class="viewcode-back" href="../../../pyon.lib.html#pyon.lib.hadron.Hadron.dump">[docs]</a>    <span class="k">def</span> <span class="nf">dump</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Can override this to call some other serializer to dump e.g. Pickle/raw string</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">json</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Hadron.json"><a class="viewcode-back" href="../../../pyon.lib.html#pyon.lib.hadron.Hadron.json">[docs]</a>    <span class="k">def</span> <span class="nf">json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the JSON encoded representation of the hadron.</span>
+
+<span class="sd">        :param \*\*kwargs: Optional arguments that :func:`json.dumps` takes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">to_dump</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_dump</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">to_dump</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</div>
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="Hadron.from_json"><a class="viewcode-back" href="../../../pyon.lib.html#pyon.lib.hadron.Hadron.from_json">[docs]</a>    <span class="k">def</span> <span class="nf">from_json</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">dic</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create :class:`Hadron` from JSON data. Defaults to passing arguments to the default constructor.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">cls</span><span class="p">(</span><span class="o">**</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">dic</span><span class="p">))</span>
+</div>
+    <span class="k">def</span> <span class="nf">_to_dump</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Specify the fields that will be dumped by :func:`json`.</span>
+<span class="sd">        See :func:`ScipyFitter._to_dump` for an example of how to inherit and adapt this function.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s">&#39;data&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="s">&#39;config_numbers&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config_numbers</span><span class="p">,</span> <span class="s">&#39;source&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">,</span> <span class="s">&#39;sink&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">sink</span><span class="p">,</span>
+                <span class="s">&#39;im_data&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">im_data</span><span class="p">,</span> <span class="s">&#39;time_slices&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_slices</span><span class="p">}</span>
+
+<div class="viewcode-block" id="Hadron.sort"><a class="viewcode-back" href="../../../pyon.lib.html#pyon.lib.hadron.Hadron.sort">[docs]</a>    <span class="k">def</span> <span class="nf">sort</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sorts the data using ``config_numbers`` as a key.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config_numbers</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">))]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config_numbers</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="Hadron.scale"><a class="viewcode-back" href="../../../pyon.lib.html#pyon.lib.hadron.Hadron.scale">[docs]</a>    <span class="k">def</span> <span class="nf">scale</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Scales the data using ``self.central_data[0]`` as a scale factor.</span>
+<span class="sd">        Scaling can improve the convergence of fitting since we aren&#39;t dealing with huge numbers.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">scale_factor</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">central_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="p">[[</span><span class="n">P</span> <span class="o">*</span> <span class="n">scale_factor</span> <span class="k">for</span> <span class="n">P</span> <span class="ow">in</span> <span class="n">c</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">]</span>
+</div>
+<div class="viewcode-block" id="Hadron.fold"><a class="viewcode-back" href="../../../pyon.lib.html#pyon.lib.hadron.Hadron.fold">[docs]</a>    <span class="k">def</span> <span class="nf">fold</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fold the data to improve statistics. Defaults to PP folding i.e. fold down the middle time slice.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">t_ext</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_extent</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_fold_one</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">t_ext</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">]</span>
+</div>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_fold_one</span><span class="p">(</span><span class="n">corr</span><span class="p">,</span> <span class="n">t_ext</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">corr</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">+</span> <span class="n">corr</span><span class="p">[(</span><span class="n">t_ext</span><span class="o">-</span><span class="n">t</span><span class="p">)</span> <span class="o">%</span> <span class="n">t_ext</span><span class="p">])</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">t_ext</span><span class="p">)]</span>
+
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="Hadron.central_data"><a class="viewcode-back" href="../../../pyon.lib.html#pyon.lib.hadron.Hadron.central_data">[docs]</a>    <span class="k">def</span> <span class="nf">central_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="Hadron.central_errs"><a class="viewcode-back" href="../../../pyon.lib.html#pyon.lib.hadron.Hadron.central_errs">[docs]</a>    <span class="k">def</span> <span class="nf">central_errs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="Hadron.effective_mass"><a class="viewcode-back" href="../../../pyon.lib.html#pyon.lib.hadron.Hadron.effective_mass">[docs]</a>    <span class="k">def</span> <span class="nf">effective_mass</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_effective_mass_fn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">central_data</span><span class="p">)</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="Hadron.effective_mass_errs"><a class="viewcode-back" href="../../../pyon.lib.html#pyon.lib.hadron.Hadron.effective_mass_errs">[docs]</a>    <span class="k">def</span> <span class="nf">effective_mass_errs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the central errors on the effective mass. By default this will calculate them via jackknife.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">resampler</span> <span class="o">=</span> <span class="n">Jackknife</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">samples</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_effective_mass_fn</span><span class="p">(</span><span class="n">j</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">resampler</span><span class="o">.</span><span class="n">generate_samples</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)]</span>
+        <span class="n">errs</span> <span class="o">=</span> <span class="p">[</span><span class="n">resampler</span><span class="o">.</span><span class="n">calculate_errors</span><span class="p">(</span><span class="n">cent</span><span class="p">,</span> <span class="n">col</span><span class="p">)</span> <span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="n">cent</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">columns</span><span class="p">(</span><span class="n">samples</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">effective_mass</span><span class="p">)]</span>
+        <span class="k">return</span> <span class="n">errs</span>
+</div>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_effective_mass_fn</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">effective_mass_pp</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="columns"><a class="viewcode-back" href="../../../pyon.lib.html#pyon.lib.hadron.columns">[docs]</a><span class="k">def</span> <span class="nf">columns</span><span class="p">(</span><span class="n">mat</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">mat</span><span class="p">[</span><span class="mi">0</span><span class="p">])):</span>
+        <span class="k">yield</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">mat</span><span class="p">)[:,</span> <span class="n">n</span><span class="p">]</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Pyon 0.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Shane Drury.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,133 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pyon.lib.io.parse &mdash; Pyon 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Pyon 0.1 documentation" href="../../../../index.html" />
+    <link rel="up" title="Module code" href="../../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../../index.html">Pyon 0.1 documentation</a> &raquo;</li>
+          <li><a href="../../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for pyon.lib.io.parse</h1><div class="highlight"><pre>
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="n">__author__</span> <span class="o">=</span> <span class="s">&#39;srd1g10&#39;</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Thoughts about parsing. A base class called FileParser is probably going to be useful.</span>
+<span class="sd">We want to customise this as an object through things like fp.parser = ... (see formats.py for examples).</span>
+<span class="sd">The file formats vary wildly. With one output file, there may be many mass/charge combinations or there may be many</span>
+<span class="sd">config_numbers in one file. To cope with this, the FileParser needs to be as flexible as possible. An idea is that it</span>
+<span class="sd">could just parse all the data in the file and return it all. Then it is left up to the user to filter this by the data</span>
+<span class="sd">they want. This would keep the parsing functions relatively simple. In other words a parser&#39;s function is separated</span>
+<span class="sd">from giving us the data we actually want. A parser&#39;s role is just to return all the data possible from the file.</span>
+<span class="sd">Filtering the data can be implemented in helper functions in io/filtering.py.</span>
+
+<span class="sd">Is a FileParser class needed? All we really need is something like parse_wme_file(file_name), which is better as a</span>
+<span class="sd">function.</span>
+<span class="sd">The file parse.py should then contain common logic for each of the formats e.g. scientific regex and the ingredients</span>
+<span class="sd">needed to parse a particular format. formats.py brings these together without cluttering up the module.</span>
+
+<span class="sd">===</span>
+
+<span class="sd">Similar to Django, it&#39;s nice to have things like raw_data.filter(source=GAM_5, ...)</span>
+<span class="sd">For this, we need a class Data</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<span class="c"># class Data(object):</span>
+<span class="c">#     def __init__(self, corrs):</span>
+<span class="c">#         self.corrs = corrs</span>
+
+
+<div class="viewcode-block" id="filter_correlators"><a class="viewcode-back" href="../../../../pyon.lib.io.html#pyon.lib.io.parse.filter_correlators">[docs]</a><span class="k">def</span> <span class="nf">filter_correlators</span><span class="p">(</span><span class="n">corrs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">corr</span> <span class="ow">in</span> <span class="n">corrs</span><span class="p">:</span>
+        <span class="n">matched</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">corr</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">!=</span> <span class="n">v</span><span class="p">:</span>
+                <span class="n">matched</span> <span class="o">=</span> <span class="bp">False</span>
+                <span class="k">break</span>
+        <span class="k">if</span> <span class="n">matched</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">corr</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;Cannot match&quot;</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../../index.html">Pyon 0.1 documentation</a> &raquo;</li>
+          <li><a href="../../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Shane Drury.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

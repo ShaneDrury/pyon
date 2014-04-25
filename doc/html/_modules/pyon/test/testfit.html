@@ -1,0 +1,185 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pyon.test.testfit &mdash; Pyon 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Pyon 0.1 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Pyon 0.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for pyon.test.testfit</h1><div class="highlight"><pre>
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">random</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">pyon.lib.fitfunction</span> <span class="kn">import</span> <span class="n">pp_flat</span>
+<span class="kn">from</span> <span class="nn">pyon.lib.fitting</span> <span class="kn">import</span> <span class="n">ScipyFitter</span><span class="p">,</span> <span class="n">fit_hadron</span>
+<span class="kn">from</span> <span class="nn">pyon.lib.io.folder</span> <span class="kn">import</span> <span class="n">get_list_of_files</span>
+<span class="kn">from</span> <span class="nn">pyon.lib.io.formats</span> <span class="kn">import</span> <span class="n">parse_iwasaki_32c_charged_meson_file</span>
+<span class="kn">from</span> <span class="nn">pyon.lib.io.parse</span> <span class="kn">import</span> <span class="n">filter_correlators</span>
+<span class="kn">from</span> <span class="nn">pyon.lib.meson</span> <span class="kn">import</span> <span class="n">PseudoscalarChargedMeson</span>
+<span class="kn">from</span> <span class="nn">pyon.lib.resampling</span> <span class="kn">import</span> <span class="n">Jackknife</span>
+
+<span class="n">__author__</span> <span class="o">=</span> <span class="s">&#39;srd1g10&#39;</span>
+<span class="kn">import</span> <span class="nn">unittest</span>
+
+
+<div class="viewcode-block" id="TestFitting"><a class="viewcode-back" href="../../../pyon.test.html#pyon.test.testfit.TestFitting">[docs]</a><span class="k">class</span> <span class="nc">TestFitting</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+<div class="viewcode-block" id="TestFitting.setUp"><a class="viewcode-back" href="../../../pyon.test.html#pyon.test.testfit.TestFitting.setUp">[docs]</a>    <span class="k">def</span> <span class="nf">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Using (0.03, 0.03), (-1, -1) from 0.004 32c</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_extent</span> <span class="o">=</span> <span class="mi">64</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">corr</span> <span class="o">=</span> <span class="p">[</span><span class="n">pp_flat</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_extent</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time_extent</span><span class="p">)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">corrs</span> <span class="o">=</span> <span class="p">[[</span><span class="n">pp_flat</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_extent</span><span class="p">)</span> <span class="o">+</span> <span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">)</span>
+                       <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time_extent</span><span class="p">)]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">200</span><span class="p">)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iwasaki_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s">&#39;testfiles&#39;</span><span class="p">,</span> <span class="s">&#39;parse&#39;</span><span class="p">,</span> <span class="s">&#39;f1&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fit_func</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">t</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">c</span><span class="p">:</span> <span class="n">pp_flat</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_extent</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="TestFitting.test_make_correlator"><a class="viewcode-back" href="../../../pyon.test.html#pyon.test.testfit.TestFitting.test_make_correlator">[docs]</a>    <span class="k">def</span> <span class="nf">test_make_correlator</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">corr</span> <span class="o">=</span> <span class="p">[</span><span class="n">pp_flat</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_extent</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time_extent</span><span class="p">)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">failUnlessEqual</span><span class="p">(</span><span class="n">corr</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mf">1.</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">failIfEqual</span><span class="p">(</span><span class="n">corr</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mf">2.</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="TestFitting.test_fit_one_correlator"><a class="viewcode-back" href="../../../pyon.test.html#pyon.test.testfit.TestFitting.test_fit_one_correlator">[docs]</a>    <span class="k">def</span> <span class="nf">test_fit_one_correlator</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">fitter</span> <span class="o">=</span> <span class="n">ScipyFitter</span><span class="p">(</span><span class="n">fit_func</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">fit_func</span><span class="p">)</span>
+        <span class="n">fit_params</span> <span class="o">=</span> <span class="n">fitter</span><span class="o">.</span><span class="n">fit_one</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">corr</span><span class="p">,</span>
+                                    <span class="n">fit_range</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">32</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span>
+                                    <span class="n">initial_value</span><span class="o">=</span><span class="p">[</span><span class="mf">1.3</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">failUnless</span><span class="p">(</span><span class="n">fit_params</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">)</span>  <span class="c"># fail if the fit fails or fit_params don&#39;t exist</span>
+        <span class="n">mass</span> <span class="o">=</span> <span class="n">fit_params</span><span class="p">[</span><span class="s">&#39;m&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">failUnlessAlmostEqual</span><span class="p">(</span><span class="n">mass</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">failIfAlmostEqual</span><span class="p">(</span><span class="n">mass</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="TestFitting.test_fail_fit"><a class="viewcode-back" href="../../../pyon.test.html#pyon.test.testfit.TestFitting.test_fail_fit">[docs]</a>    <span class="k">def</span> <span class="nf">test_fail_fit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">fitter</span> <span class="o">=</span> <span class="n">ScipyFitter</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="n">fitter</span><span class="o">.</span><span class="n">fit_one</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">corr</span><span class="p">,</span>
+                          <span class="n">fit_range</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">32</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span>
+                          <span class="n">initial_value</span><span class="o">=</span><span class="p">[</span><span class="mf">0.8</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">])</span>
+</div>
+<div class="viewcode-block" id="TestFitting.make_hadron"><a class="viewcode-back" href="../../../pyon.test.html#pyon.test.testfit.TestFitting.make_hadron">[docs]</a>    <span class="k">def</span> <span class="nf">make_hadron</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">raw_data</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">ff</span> <span class="ow">in</span> <span class="n">get_list_of_files</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">iwasaki_folder</span><span class="p">):</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">ff</span><span class="p">,</span> <span class="s">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">raw_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">parse_iwasaki_32c_charged_meson_file</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
+        <span class="n">filtered_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">filter_correlators</span><span class="p">(</span><span class="n">rd</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="s">&#39;GAM_5&#39;</span><span class="p">,</span> <span class="n">sink</span><span class="o">=</span><span class="s">&#39;GAM_5&#39;</span><span class="p">,</span> <span class="n">masses</span><span class="o">=</span><span class="p">(</span><span class="mf">0.03</span><span class="p">,</span> <span class="mf">0.03</span><span class="p">))</span>
+                         <span class="k">for</span> <span class="n">rd</span> <span class="ow">in</span> <span class="n">raw_data</span><span class="p">]</span>
+        <span class="n">had</span> <span class="o">=</span> <span class="n">PseudoscalarChargedMeson</span><span class="o">.</span><span class="n">from_parsed_data</span><span class="p">(</span><span class="n">filtered_data</span><span class="p">)</span>
+        <span class="n">had</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+        <span class="n">had</span><span class="o">.</span><span class="n">fold</span><span class="p">()</span>
+        <span class="n">had</span><span class="o">.</span><span class="n">scale</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">had</span>
+</div>
+<div class="viewcode-block" id="TestFitting.test_fit_covar"><a class="viewcode-back" href="../../../pyon.test.html#pyon.test.testfit.TestFitting.test_fit_covar">[docs]</a>    <span class="k">def</span> <span class="nf">test_fit_covar</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">had</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_hadron</span><span class="p">()</span>
+        <span class="n">bnds</span> <span class="o">=</span> <span class="p">((</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">None</span><span class="p">))</span>
+        <span class="n">fp</span> <span class="o">=</span> <span class="n">fit_hadron</span><span class="p">(</span><span class="n">had</span><span class="p">,</span> <span class="n">fit_range</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="mi">32</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span> <span class="n">initial_value</span><span class="o">=</span><span class="p">[</span><span class="mf">0.3212</span><span class="p">,</span> <span class="mf">1.654</span><span class="p">],</span> <span class="n">covariant</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="n">bnds</span><span class="p">)</span>
+        <span class="n">fit_params</span> <span class="o">=</span> <span class="n">fp</span><span class="o">.</span><span class="n">average_params</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">fit_params</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">)</span>  <span class="c"># fail if the fit fails or fit_params don&#39;t exist</span>
+        <span class="n">mass</span> <span class="o">=</span> <span class="n">fit_params</span><span class="p">[</span><span class="s">&#39;m&#39;</span><span class="p">]</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">fit_params</span><span class="p">[</span><span class="s">&#39;c&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">failUnlessAlmostEqual</span><span class="p">(</span><span class="n">mass</span><span class="p">,</span> <span class="mf">0.32120951002753384</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">failUnlessAlmostEqual</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="mf">1.6542423508883226</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="TestFitting.test_fit_covar_err"><a class="viewcode-back" href="../../../pyon.test.html#pyon.test.testfit.TestFitting.test_fit_covar_err">[docs]</a>    <span class="k">def</span> <span class="nf">test_fit_covar_err</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">had</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_hadron</span><span class="p">()</span>
+        <span class="n">bnds</span> <span class="o">=</span> <span class="p">((</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">),</span> <span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="bp">None</span><span class="p">))</span>
+        <span class="n">fp</span> <span class="o">=</span> <span class="n">fit_hadron</span><span class="p">(</span><span class="n">had</span><span class="p">,</span> <span class="n">fit_range</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="mi">32</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span> <span class="n">initial_value</span><span class="o">=</span><span class="p">[</span><span class="mf">0.3212</span><span class="p">,</span> <span class="mf">1.654</span><span class="p">],</span> <span class="n">covariant</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="n">bnds</span><span class="p">)</span>
+        <span class="n">errs</span> <span class="o">=</span> <span class="n">fp</span><span class="o">.</span><span class="n">errs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">errs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">)</span>  <span class="c"># fail if the fit fails or fit_params don&#39;t exist</span>
+        <span class="n">mass</span> <span class="o">=</span> <span class="n">errs</span><span class="p">[</span><span class="s">&#39;m&#39;</span><span class="p">]</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">errs</span><span class="p">[</span><span class="s">&#39;c&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">failUnlessAlmostEqual</span><span class="p">(</span><span class="n">mass</span><span class="p">,</span> <span class="mf">0.0003960453177452647</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="mf">1e-2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">failUnlessAlmostEqual</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="mf">0.014091062055500116</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="mf">1e-2</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="TestFitting.test_fit"><a class="viewcode-back" href="../../../pyon.test.html#pyon.test.testfit.TestFitting.test_fit">[docs]</a>    <span class="k">def</span> <span class="nf">test_fit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">fitter</span> <span class="o">=</span> <span class="n">ScipyFitter</span><span class="p">(</span><span class="n">fit_func</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">fit_func</span><span class="p">)</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="n">fitter</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">corrs</span><span class="p">,</span>
+                       <span class="n">fit_range</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">32</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span>
+                       <span class="n">initial_value</span><span class="o">=</span><span class="p">[</span><span class="mf">1.4</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">],</span> <span class="n">covariant</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+        <span class="n">fit_params</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">average_params</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">fit_params</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">)</span>  <span class="c"># fail if the fit fails or fit_params don&#39;t exist</span>
+        <span class="n">mass</span> <span class="o">=</span> <span class="n">fit_params</span><span class="p">[</span><span class="s">&#39;m&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">failUnlessAlmostEqual</span><span class="p">(</span><span class="n">mass</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="mf">1e-2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">failIfAlmostEqual</span><span class="p">(</span><span class="n">mass</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Pyon 0.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Shane Drury.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>
