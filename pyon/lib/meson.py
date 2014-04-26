@@ -44,7 +44,7 @@ class PseudoscalarMeson(Meson):
         """
         super(PseudoscalarMeson, self).__init__(data, config_numbers, masses, **kwargs)
         self.fit_func = lambda t, m, c: pp_flat(t, m, c, self.time_extent)
-        self.hess = lambda t, m, c: pp_flat_hess(t, m, c, self.time_extent)
+        #self.hess = lambda t, m, c: pp_flat_hess(t, m, c, self.time_extent)
 
     @property
     def _name(self):

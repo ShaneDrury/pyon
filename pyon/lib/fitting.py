@@ -23,7 +23,7 @@ class Fitter:
     :param fit_func: The function we fit to. Used to calculate the chi squared
     :param resampler: The way we calculate the errors e.g. :class:`Jackknife <resampling.Jackknife>`
     """
-    def __init__(self, fit_func=None, resampler='jackknife', hess=None, resampler_args=None):
+    def __init__(self, fit_func=None, resampler='jackknife', resampler_args=None):
         self.fit_func = fit_func
         if resampler_args is None:
             resampler_args = {}
@@ -57,12 +57,10 @@ class Fitter:
         for sample in self.resampler.generate_samples(data):
             fit_param = self.fit_one(sample, errors, initial_value, fit_range,
                                      inverse_covariance=inv_covar,
-                                     hessian=hessian,
                                      **kwargs)
             for k, v in fit_param.items():
                 resampled_params[k].append(v)
         average_params = self.fit_one(np.average(data, axis=0), errors, initial_value, fit_range,
-                                      hessian=hessian,
                                       inverse_covariance=inv_covar, **kwargs)
         #average_params = {k: np.average(v, axis=0) for k, v in resampled_params.items()}
         errs = self.resampler.calculate_fit_errors(average_params, resampled_params)
@@ -76,18 +74,16 @@ class Fitter:
 
     def fit_one(self, data=None, errors=None, initial_value=None,
                 fit_range=None, inverse_covariance=None,
-                hessian=None,
                 **kwargs):
         chi_sq = self.generate_chi_sq(data=data, errors=errors,
                                       fit_range=fit_range, inverse_covariance=inverse_covariance)
-        if hessian:
-            hess = self._generate_chi_sq_hessian(errors=errors,
-                                                 fit_range=fit_range,
-                                                 hessian=hessian)
-        else:
-            hess = None
+        # if hessian:
+        #     hess = self._generate_chi_sq_hessian(errors=errors,
+        #                                          fit_range=fit_range,
+        #                                          hessian=hessian)
+        # else:
+        #     hess = None
         fit_param = self.fit_chi_sq(chi_sq, initial_value=initial_value,
-                                    hessian=hess,
                                     **kwargs)
         return fit_param
 
@@ -118,17 +114,17 @@ class Fitter:
                         for t in fit_range]) / len(fit_range)
         return chi_sq
 
-    def _generate_chi_sq_hessian(self, errors, fit_range, hessian):
-        def hess(args):
-            h_11 = sum([hessian(t, *args)[0]**2 / errors[t]**2
-                        for t in fit_range])
-            h_12 = sum([hessian(t, *args)[0]*hessian(t, *args)[1] / errors[t]**2
-                        for t in fit_range])
-            h_21 = h_12
-            h_22 = sum([hessian(t, *args)[1]**2 / errors[t]**2
-                        for t in fit_range])
-            return [[h_11, h_12], [h_21, h_22]]
-        return hess
+    # def _generate_chi_sq_hessian(self, errors, fit_range, hessian):
+    #     def hess(args):
+    #         h_11 = sum([hessian(t, *args)[0]**2 / errors[t]**2
+    #                     for t in fit_range])
+    #         h_12 = sum([hessian(t, *args)[0]*hessian(t, *args)[1] / errors[t]**2
+    #                     for t in fit_range])
+    #         h_21 = h_12
+    #         h_22 = sum([hessian(t, *args)[1]**2 / errors[t]**2
+    #                     for t in fit_range])
+    #         return np.asmatrix([[h_11, h_12], [h_21, h_22]])
+    #     return hess
 
 
 
@@ -137,9 +133,8 @@ class ScipyFitter(Fitter):
     """
     Inherits from :class:`Fitter`.
     """
-    @profile
-    def fit_chi_sq(self, chi_sq, initial_value, method='Newton-CG',
-                   hessian=None,
+
+    def fit_chi_sq(self, chi_sq, initial_value, method='L-BFGS-B',
                    **kwargs):
         """
         Uses scipy's :func:`minimize <scipy.optimize.minimize>` function to minimize the ``chi_sq`` of the fit.
@@ -150,7 +145,7 @@ class ScipyFitter(Fitter):
         :param \*\*kwargs: Extra parameters to pass in to :func:`minimize <scipy.optimize.minimize>`
         :rtype: dict
         """
-        out = minimize(chi_sq, initial_value, method=method, jac=hessian,
+        out = minimize(chi_sq, initial_value, method=method,
                        **kwargs)
         fit_params = populate_dict_args(self.fit_func, out.x)
         return fit_params
@@ -175,22 +170,8 @@ def fit_hadron(hadron, initial_value=None, fit_range=None, covariant=False, **kw
     """
     Common use case, uses Scipy for fitting and Jackknife for errors.
     """
-    fitter = ScipyFitter(fit_func=hadron.fit_func, hess=hadron.hess, resampler='jackknife')
-    return fitter.fit(hadron.data, hadron.central_errs, initial_value=initial_value, fit_range=fit_range,
+    fitter = ScipyFitter(fit_func=hadron.fit_func,
+                         resampler='jackknife')
+    return fitter.fit(hadron.data, hadron.central_errs,
+                      initial_value=initial_value, fit_range=fit_range,
                       covariant=covariant, **kwargs)
-
-    # def fit(data=None, errors=None, initial_value=None, fit_range=None, covariant=False, correlated=False,
-    #         method=None, fit_func=None, resampler=None, **kwargs):
-    #     """
-    #     Finds the best fit parameters of the data from ``fit_func`` and the errors calculated with ``resampler``. This is
-    #     a loose wrapper around the :class:`Fitter` classes. Has the same arguments as :func:`Fitter.fit`.
-    #
-    #     :param data: Data from :class:`Hadron <hadron.Hadron>`.
-    #     :param \*args: Same arguments as :func:`Fitter.fit`.
-    #     :param \*\*kwargs: extra arguments to pass to :func:`Fitter.fit_chi_sq`
-    #     """
-    #     if method is None:
-    #         raise TypeError("Fit method not specified, must be one of {}".format(registered_fitters.keys()))
-    #     fitter = registered_fitters[method](fit_func=fit_func, resampler=resampler)
-    #     data = data
-    #     return fitter.fit(data, errors, initial_value, fit_range, covariant, correlated, **kwargs)

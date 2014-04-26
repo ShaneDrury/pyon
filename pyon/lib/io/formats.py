@@ -18,6 +18,7 @@ IWASAKI_REGEX = {
              + "\n)+)"
              "^ENDPROP"),
 }
+IWASAKI_COMPILED_REGEX = re.compile(IWASAKI_REGEX['data'], re.MULTILINE)
 
 
 def parse_iwasaki_32c_charged_meson_file(f):
@@ -37,7 +38,7 @@ def parse_iwasaki_32c_charged_meson_file(f):
         config_number = int(m.group('config_number'))
     else:
         raise re.error("Cannot match filename")
-    r = re.compile(IWASAKI_REGEX['data'], re.MULTILINE)
+    r = IWASAKI_COMPILED_REGEX
     matched = [m.groupdict() for m in r.finditer(raw_data)]
     for match in matched:
         re_data = []
