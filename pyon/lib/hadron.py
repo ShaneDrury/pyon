@@ -7,8 +7,9 @@ import logging
 
 class Hadron(object):
     """
-    :class:`Hadron` is a representation of a QCD hadron. A particular class that inherits from this will specify the \
-    ``fit_func`` and how to plot the data that represents a certain correlation function.
+    :class:`Hadron` is a representation of a QCD hadron. A particular class
+    that inherits from this will specify the ``fit_func`` and how to plot the
+    data that represents a certain correlation function.
     """
     def __init__(self, data=None, config_numbers=None, sort=True, source=None,
                  sink=None, im_data=None,
@@ -29,9 +30,11 @@ class Hadron(object):
     @classmethod
     def from_parsed_data(cls, parsed_data):
         """
-        Create a :class:`Hadron` from ``parsed_data``. This handles all the duplicate information that the parsed data
+        Create a :class:`Hadron` from ``parsed_data``. This handles all the \
+        duplicate information that the parsed data
         might have. The ``parsed_data`` will be the return value from e.g. \
-        :func:`parse_iwasaki_32c_charged_meson_file <.io.formats.parse_iwasaki_32c_charged_meson_file>`
+        :func:`parse_iwasaki_32c_charged_meson_file \
+        <.io.formats.parse_iwasaki_32c_charged_meson_file>`
         """
         data = [fd['data'] for fd in parsed_data]
         config_numbers = [fd['config_number'] for fd in parsed_data]
@@ -64,7 +67,8 @@ class Hadron(object):
 
     def dump(self, **kwargs):
         """
-        Can override this to call some other serializer to dump e.g. Pickle/raw string
+        Can override this to call some other serializer to dump e.g. Pickle/raw
+         string
         """
         return self.json(**kwargs)
 
@@ -80,7 +84,8 @@ class Hadron(object):
     def _to_dump(self):
         """
         Specify the fields that will be dumped by :func:`json`.
-        See :func:`ScipyFitter._to_dump` for an example of how to inherit and adapt this function.
+        See :func:`ScipyFitter._to_dump` for an example of how to inherit and
+        adapt this function.
         """
         return {'data': self.data, 'config_numbers': self.config_numbers, 'source': self.source, 'sink': self.sink,
                 'im_data': self.im_data, 'time_slices': self.time_slices}
@@ -96,14 +101,16 @@ class Hadron(object):
     def scale(self):
         """
         Scales the data using ``self.central_data[0]`` as a scale factor.
-        Scaling can improve the convergence of fitting since we aren't dealing with huge numbers.
+        Scaling can improve the convergence of fitting since we aren't dealing
+        with huge numbers.
         """
         scale_factor = self.central_data[0]
         self.data = [[P / scale_factor for P in c] for c in self.data]
 
     def fold(self):
         """
-        Fold the data to improve statistics. Defaults to PP folding i.e. fold down the middle time slice.
+        Fold the data to improve statistics. Defaults to PP folding i.e. fold
+        down the middle time slice.
         """
         t_ext = self.time_extent
         self.data = [self._fold_one(c, t_ext) for c in self.data]
@@ -127,7 +134,8 @@ class Hadron(object):
     @property
     def effective_mass_errs(self):
         """
-        Return the central errors on the effective mass. By default this will calculate them via jackknife.
+        Return the central errors on the effective mass. By default this will
+        calculate them via jackknife.
         """
         resampler = Jackknife(n=1)
         samples = [self._effective_mass_fn(j) for j in resampler.generate_samples(self.data)]

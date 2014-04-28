@@ -1,4 +1,5 @@
-from pyon.lib.fitfunction import pp_flat, pp_flat_hess
+import functools
+from pyon.lib.fitfunction import pp_flat
 from pyon.lib.hadron import Hadron
 
 
@@ -30,7 +31,8 @@ class Meson(Hadron):
 
 class PseudoscalarMeson(Meson):
     """
-    A :class:`PseudoscalarMeson` is a :class:`Hadron <hadron.Hadron>` consisting of two valence quarks.
+    A :class:`PseudoscalarMeson` is a :class:`Hadron <hadron.Hadron>`
+    consisting of two valence quarks.
     """
 
     def __init__(self, data=None, config_numbers=None, masses=None, **kwargs):
@@ -42,8 +44,11 @@ class PseudoscalarMeson(Meson):
         :param masses: The bare masses of the quarks of the meson.
         :type masses: tuple of floats e.g. (0.01, 0.005)
         """
-        super(PseudoscalarMeson, self).__init__(data, config_numbers, masses, **kwargs)
-        self.fit_func = lambda t, m, c: pp_flat(t, m, c, self.time_extent)
+        super(PseudoscalarMeson, self).__init__(data, config_numbers, masses,
+                                                **kwargs)
+        #self.fit_func = functools.partial(pp_flat, T=self.time_extent)
+        self.fit_func = lambda t, m, c: pp_flat(t, m, c,
+                                                      self.time_extent)
         #self.hess = lambda t, m, c: pp_flat_hess(t, m, c, self.time_extent)
 
     @property
@@ -52,11 +57,14 @@ class PseudoscalarMeson(Meson):
 
 
 class PseudoscalarChargedMeson(Meson):
-    def __init__(self, data=None, config_numbers=None, masses=None, charges=None, **kwargs):
-        super(PseudoscalarChargedMeson, self).__init__(data, config_numbers, masses, **kwargs)
+    def __init__(self, data=None, config_numbers=None, masses=None,
+                 charges=None, **kwargs):
+        super(PseudoscalarChargedMeson, self).__init__(data, config_numbers,
+                                                       masses, **kwargs)
         self.charges = charges
-        self.fit_func = lambda t, m, c: pp_flat(t, m, c, self.time_extent)
-        self.hess = lambda t, m, c: pp_flat_hess(t, m, c, self.time_extent)
+        self.fit_func = lambda t, m, c: pp_flat(t, m, c,
+                                                      self.time_extent)
+        #self.hess = lambda t, m, c: pp_flat_hess(t, m, c, self.time_extent)
 
     def _to_dump(self):
         to_dump = super(PseudoscalarChargedMeson, self)._to_dump()
@@ -64,9 +72,9 @@ class PseudoscalarChargedMeson(Meson):
         return to_dump
 
     def __str__(self):
-        return super(PseudoscalarChargedMeson, self).__str__() + ", Charges: {}".format(self.charges)
+        return super(PseudoscalarChargedMeson, self).__str__() + \
+            ", Charges: {}".format(self.charges)
 
     @property
     def _name(self):
         return "Pseudoscalar Charged Meson"
-

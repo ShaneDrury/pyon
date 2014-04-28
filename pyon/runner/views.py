@@ -19,9 +19,3 @@ class View(object):
     def data(self):
         return self.get_queryset().all()
 
-
-# #  Might be easier to set up something like:
-# @register.view('view_name')
-# def my_view():
-#     data_source =
-#     return data_source.all()

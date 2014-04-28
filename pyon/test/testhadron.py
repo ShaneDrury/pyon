@@ -30,7 +30,8 @@ class TestHadron(unittest.TestCase):
         data = [[pp_flat(t, 1.0, 1.0, self.time_extent) + random.normal(scale=1e-4)
                  for t in range(self.time_extent)] for _ in range(50)]
         had = PseudoscalarMeson(data, masses=(0.01, 0.01))
-        fp = fit_hadron(had, fit_range=range(1, 32+1), initial_value=[0.8, 1.5], covariant=False)
+        fp = fit_hadron(had, fit_range=range(1, 32+1),
+                        initial_value=[0.8, 1.5], covariant=False)
         self.assertAlmostEqual(fp.average_params['m'], 1.0, 2)
 
     def make_filtered_data(self):

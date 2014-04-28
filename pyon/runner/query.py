@@ -51,3 +51,10 @@ class QuerySet(object):
         return values
 
 
+class QuerySet2(object):
+    """
+    Rewritten to use a database backend.
+    """
+    def __init__(self):
+        pass
+

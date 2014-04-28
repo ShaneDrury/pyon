@@ -10,13 +10,15 @@ __author__ = 'srd1g10'
 class App(object):
     module_names = ['sources', 'views', 'models', 'simulations']
 
-    def __init__(self, directory, name=None, dump_dir=None, template=None):
+    def __init__(self, directory, name=None, dump_dir=None, template=None,
+                 db_dir=None):
         self.name = name or time.strftime("%Y%m%d-%H%M%S")
         self.registers = {}
         self._populate_registers(directory)
         self.simulation_results = {}
         self.dump_dir = dump_dir
         self.template = template
+        self.db_dir = db_dir
 
     def _populate_registers(self, directory):
         """
@@ -77,6 +79,13 @@ class App(object):
         }
         rendered = template.render(**template_dic)
         return rendered
+
+    def populate_db(self):
+        """
+        Go through the registered sources and dump their contents into a
+        database for fast access.
+        """
+        pass
 
     @staticmethod
     def _sanitize_dic(dic):
