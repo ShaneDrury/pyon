@@ -2,8 +2,9 @@ from setuptools import setup
 
 setup(
     name='pyon',
-    version='0.0.2',
+    version='0.0.3',
     packages=['pyon', 'pyon.lib', 'pyon.test', 'pyon.runner',
+              'pyon.lib.io'
               ],
     url='',
     license='',

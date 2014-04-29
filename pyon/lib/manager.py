@@ -30,8 +30,7 @@ class DBManager(Manager):
         pass
 
     def filter_to_query(self, filter):
-        qry = filter
-        return qry
+        pass
 
     def _do_query(self, query):
         pass
