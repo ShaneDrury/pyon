@@ -35,7 +35,7 @@ registered_sources = {}
 #         return QuerySet(self._data)
 
 
-class Source:
+class Source(object):
     def __init__(self, manager=None):
         self.manager = manager
         self._data = None
