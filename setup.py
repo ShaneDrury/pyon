@@ -1,14 +1,14 @@
 from setuptools import setup
 
 setup(
-    name='chromopy',
+    name='pyon',
     version='',
     packages=['pyon', 'pyon.lib', 'pyon.test',
               ],
     url='',
     license='',
-    author='srd1g10',
-    author_email='',
+    author='Shane Drury',
+    author_email='shane.r.drury@gmail.com',
     description='',
-    install_requires=['numpy', 'scipy', 'simplejson', 'Jinja2', 'psycopg2'],
+    install_requires=['numpy', 'scipy', 'simplejson', 'Jinja2'],
 )
