@@ -1,7 +1,15 @@
 """
 Database stuff!
+Should be able to use multiple backends as long as they implement the Python
+Database Specification v2.0 (PEP 249).
 """
+import sqlite3
 
+
+def main():
+    conn = sqlite3.connect('qed.db')
+    c = conn.cursor()
+    print(c)
 
 # class Database(object):
 #     """

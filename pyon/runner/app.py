@@ -7,7 +7,7 @@ import time
 
 class App(object):
     def __init__(self, directory, name=None, dump_dir=None, template=None,
-                 db_name=None, username=None):
+                 db_path=None):
         self.name = name or time.strftime("%Y%m%d-%H%M%S")
         self.registers = {}
         self.module_names = ['sources', 'views', 'models', 'simulations']
@@ -15,11 +15,9 @@ class App(object):
         self.simulation_results = {}
         self.dump_dir = dump_dir
         self.template = template
-        self.db_name = db_name
-        self.username = username
+        self.db_path = db_path
         self.report_name = 'report.html'
         self.dump_name = 'dump.json'
-
 
     def _populate_registers(self, directory):
         """
