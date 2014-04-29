@@ -10,5 +10,5 @@ setup(
     author='srd1g10',
     author_email='',
     description='',
-    install_requires=['numpy', 'scipy', 'simplejson', 'Jinja2'],
+    install_requires=['numpy', 'scipy', 'simplejson', 'Jinja2', 'psycopg2'],
 )

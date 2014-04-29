@@ -1,60 +1,40 @@
-"""
-Define a QuerySet
-"""
-from pyon.lib.io.formats import filter_one_correlator
-
-
 class QuerySet(object):
-    def __init__(self, data):
-        self.data = list(data)
+    def __init__(self, data, manager_class=None):
+        self.data = data
+        if manager_class is None:
+            raise ValueError("Must provide a manager class for a QuerySet")
+        self.manager_class = manager_class
+        self.manager = manager_class(self)
+        self._list_data = None
+
+    def make_query_set(self, data):
+        return QuerySet(data, self.manager_class)
 
     def filter(self, **kwargs):
-        my_filter = lambda x: filter_one_correlator(x, **kwargs)
-        filtered = self._do_filter(my_filter, self.data)
-        if len(filtered.all()) == 0:
-            raise ValueError("Cannot match {}".format(kwargs))
-        return filtered
+        return self.make_query_set(self.manager.filter(**kwargs))
 
     def exclude(self, **kwargs):
-        my_filter = lambda x: not filter_one_correlator(x, **kwargs)
-        filtered = self._do_filter(my_filter, self.data)
-        if len(filtered.all()) == 0:
-            raise ValueError("Cannot match {}".format(kwargs))
-        return filtered
-
-    @staticmethod
-    def _do_filter(filt, data):
-        filtered = list(filter(filt, data))
-        return QuerySet(filtered)
+        return self.make_query_set(self.manager.exclude(**kwargs))
 
     def all(self):
         return self.data
 
-    def __len__(self):
-        return len(self.data)
+    def __getitem__(self, item):
+        """
+        Allow indexing of data e.g. qs[0]
+
+        Converts into a list to allow indexing and stores this so that it isn't
+        calculated twice.
+        """
+        if self._list_data is None:
+            self._list_data = list(self.data)
+        return self._list_data[item]
 
     def sort(self, sort_by):
-        self.data = sorted(self.data, key=lambda item: item[sort_by])
+        self.data = self.manager.sort(sort_by)
 
     def unique(self, field_name):
         """
         Return a list of the unique values of ``field_name`` in the data.
         """
-        values = []
-        for f in self.data:
-            try:
-                v = f[field_name]
-                if v not in values:
-                    values.append(v)
-            except KeyError:
-                pass
-        return values
-
-
-class QuerySet2(object):
-    """
-    Rewritten to use a database backend.
-    """
-    def __init__(self):
-        pass
-
+        return self.manager.unique(field_name)

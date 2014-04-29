@@ -1,9 +1,7 @@
 from numpy import random
 from pyon.lib.fitfunction import pp_flat
 from pyon.lib.meson import PseudoscalarMeson
-from pyon.lib.plotting import registered_plotters, plot_hadron
-import numpy as np
-__author__ = 'srd1g10'
+from pyon.lib.plotting import plot_hadron
 import unittest
 
 

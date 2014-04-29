@@ -4,21 +4,22 @@ import os
 import logging
 import time
 
-__author__ = 'srd1g10'
-
 
 class App(object):
-    module_names = ['sources', 'views', 'models', 'simulations']
-
     def __init__(self, directory, name=None, dump_dir=None, template=None,
-                 db_dir=None):
+                 db_name=None, username=None):
         self.name = name or time.strftime("%Y%m%d-%H%M%S")
         self.registers = {}
+        self.module_names = ['sources', 'views', 'models', 'simulations']
         self._populate_registers(directory)
         self.simulation_results = {}
         self.dump_dir = dump_dir
         self.template = template
-        self.db_dir = db_dir
+        self.db_name = db_name
+        self.username = username
+        self.report_name = 'report.html'
+        self.dump_name = 'dump.json'
+
 
     def _populate_registers(self, directory):
         """
@@ -45,26 +46,31 @@ class App(object):
             self.simulation_results[sim_name] = sim_results
 
             if self.dump_dir:
-                dump_path = os.path.join(self.dump_dir,
-                                         self.name
-                                         + '_' + sim_name)
-                if not os.path.exists(dump_path):
-                    os.mkdir(dump_path)
-                logging.info("Dumping results to {}".format(dump_path))
-                to_dump = self.dumps(sim_name, sim_results)
-                with open(os.path.join(dump_path, 'dump.json'), 'w') as f:
-                    simplejson.dump(to_dump, f, namedtuple_as_object=True)
+                self.dump_result(sim_name, sim_results)
 
             if self.template:
-                rendered = self.render_template(self.template, sim_name,
-                                                sim_results)
-                report_dir = os.path.join(self.dump_dir,
-                                          self.name + '_' + sim_name)
-                report_name = 'report.html'
-                if not os.path.exists(report_dir):
-                    os.mkdir(report_dir)
-                with open(os.path.join(report_dir, report_name), 'w') as f:
-                    f.write(rendered)
+                self.write_report(sim_name, sim_results)
+
+    def dump_result(self, sim_name, sim_results):
+        dump_path = os.path.join(self.dump_dir,
+                                 self.name
+                                 + '_' + sim_name)
+        if not os.path.exists(dump_path):
+            os.mkdir(dump_path)
+        logging.info("Dumping results to {}".format(dump_path))
+        to_dump = self.dumps(sim_name, sim_results)
+        with open(os.path.join(dump_path, self.dump_name), 'w') as f:
+            simplejson.dump(to_dump, f, namedtuple_as_object=True)
+
+    def write_report(self, sim_name, sim_results):
+        rendered = self.render_template(self.template, sim_name,
+                                        sim_results)
+        report_dir = os.path.join(self.dump_dir,
+                                  self.name + '_' + sim_name)
+        if not os.path.exists(report_dir):
+            os.mkdir(report_dir)
+        with open(os.path.join(report_dir, self.report_name), 'w') as f:
+            f.write(rendered)
 
     def dumps(self, sim_name, results):
         to_dump = self._sanitize_dic(results)
@@ -72,20 +78,14 @@ class App(object):
         to_dump['sim_name'] = sim_name
         return to_dump
 
-    def render_template(self, template, sim_name, results):
+    @staticmethod
+    def render_template(template, sim_name, results):
         template_dic = {
             'title': 'Report: ' + sim_name,
             'sim_results': results,
         }
         rendered = template.render(**template_dic)
         return rendered
-
-    def populate_db(self):
-        """
-        Go through the registered sources and dump their contents into a
-        database for fast access.
-        """
-        pass
 
     @staticmethod
     def _sanitize_dic(dic):
