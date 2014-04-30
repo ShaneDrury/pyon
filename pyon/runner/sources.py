@@ -70,6 +70,7 @@ class FileSource(Source):
         super(FileSource, self).__init__(FileManager)
 
     def _get_data(self):
+        logging.debug("Getting files")
         parser = self._get_parser()
         if self.files:
             return parser.get_from_files(self.files)

@@ -1,7 +1,7 @@
 """
-Database stuff!
 Should be able to use multiple backends as long as they implement the Python
-Database Specification v2.0 (PEP 249).
+Database Specification v2.0 (PEP 249). Sqlite3 is default as it doesn't
+require the user to run a database server.
 """
 import sqlite3
 
@@ -13,7 +13,6 @@ def main():
 
 # class Database(object):
 #     """
-#     Rewritten to just use a database backend.
 #     """
 #     def __init__(self, db_name, username):
 #         self.db_name = db_name

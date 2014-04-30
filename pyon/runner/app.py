@@ -1,3 +1,4 @@
+import hashlib
 import imp
 import simplejson
 import os
@@ -41,13 +42,14 @@ class App(object):
             logging.info("Doing {}".format(sim_name))
             my_sim = sim()
             sim_results = my_sim.get_results()
+            sim_plots = my_sim.get_plots()
             self.simulation_results[sim_name] = sim_results
 
             if self.dump_dir:
                 self.dump_result(sim_name, sim_results)
 
             if self.template:
-                self.write_report(sim_name, sim_results)
+                self.write_report(sim_name, time.strftime("%c"), sim_results)
 
     def dump_result(self, sim_name, sim_results):
         dump_path = os.path.join(self.dump_dir,
@@ -60,15 +62,33 @@ class App(object):
         with open(os.path.join(dump_path, self.dump_name), 'w') as f:
             simplejson.dump(to_dump, f, namedtuple_as_object=True)
 
-    def write_report(self, sim_name, sim_results):
-        rendered = self.render_template(self.template, sim_name,
-                                        sim_results)
+    def write_report(self, sim_name, date, sim_results):
+        to_report = {}
+        for k, v in sim_results.items():
+            vv = v._asdict()
+            vv['hash'] = self.hash_name(k)
+            to_report[k] = vv
+        rendered = self.render_template(self.template, sim_name, date,
+                                        to_report)
         report_dir = os.path.join(self.dump_dir,
                                   self.name + '_' + sim_name)
         if not os.path.exists(report_dir):
             os.mkdir(report_dir)
         with open(os.path.join(report_dir, self.report_name), 'w') as f:
             f.write(rendered)
+
+    @staticmethod
+    def hash_name(result_name):
+        result_name = str(result_name)
+        hash_object = hashlib.md5(result_name.encode('utf-8'))
+        hashed_name = hash_object.hexdigest()
+        return hashed_name
+
+    @staticmethod
+    def read_result(result_path):
+        with open(result_path, 'r') as f:
+            result = simplejson.load(f, namedtuple_as_object=True)
+        return result
 
     def dumps(self, sim_name, results):
         to_dump = self._sanitize_dic(results)
@@ -77,10 +97,11 @@ class App(object):
         return to_dump
 
     @staticmethod
-    def render_template(template, sim_name, results):
+    def render_template(template, sim_name, date, results):
         template_dic = {
-            'title': 'Report: ' + sim_name,
+            'title': sim_name,
             'sim_results': results,
+            'sim_date': date,
         }
         rendered = template.render(**template_dic)
         return rendered
