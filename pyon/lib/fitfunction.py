@@ -1,6 +1,7 @@
 __author__ = 'srd1g10'
 from functools import partial
 import numpy as np
+from math import exp
 
 
 def pp(t, m, z, T=64):
@@ -16,6 +17,7 @@ def ap(t, m, z, f, Z, T=64):
 
 
 def pp_flat(t=1, m=1.0, c=1.0, T=64):
+    #  exp seems to be faster when not using numpy arrays
     return c * (np.exp(-m*t) + np.exp(-m*(T-t)))
 
 

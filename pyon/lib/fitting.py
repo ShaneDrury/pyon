@@ -71,7 +71,8 @@ class Fitter:
                                      **kwargs)
             for k, v in fit_param.items():
                 resampled_params[k].append(v)
-        average_params = self.fit_one(np.average(data, axis=0), errors,
+        average_params = self.fit_one(np.average(data, axis=0),
+                                      errors,
                                       initial_value, fit_range,
                                       inverse_covariance=inv_covar, **kwargs)
         errs = self.resampler.calculate_fit_errors(average_params,
@@ -87,6 +88,7 @@ class Fitter:
     def fit_one(self, data=None, errors=None, initial_value=None,
                 fit_range=None, inverse_covariance=None,
                 **kwargs):
+
         chi_sq = self.generate_chi_sq(data=data, errors=errors,
                                       fit_range=fit_range,
                                       inverse_covariance=inverse_covariance)
@@ -102,13 +104,18 @@ class Fitter:
 
     def generate_chi_sq(self, data, errors=None, inverse_covariance=None,
                         fit_range=None):
+        fit_range = np.array(fit_range)
+        d = np.array([data[t] for t in fit_range])
         if errors is None:
-            errors = [1. for _ in data]
+            e = np.array([1. for _ in fit_range])
+        else:
+            e = np.array([errors[t] for t in fit_range])
+
         if inverse_covariance is not None:
-            chi_sq = self._generate_chi_sq_covariant(data, inverse_covariance,
+            chi_sq = self._generate_chi_sq_covariant(d, inverse_covariance,
                                                      fit_range, self.fit_func)
         else:
-            chi_sq = self._generate_chi_sq_uncovariant(data, errors, fit_range,
+            chi_sq = self._generate_chi_sq_uncovariant(d, e, fit_range,
                                                        self.fit_func)
         return chi_sq
 
@@ -116,8 +123,8 @@ class Fitter:
     def _generate_chi_sq_covariant(data, inverse_covariance, fit_range,
                                    fit_func):
         def chi_sq(args):
-            pared_data = np.array([data[t] for t in fit_range])
-            v = np.array(fit_func(fit_range, *args) - pared_data)
+            #pared_data = np.array([data[t] for t in fit_range])
+            v = np.array(fit_func(fit_range, *args) - data)
             m = np.array(inverse_covariance)
             r = np.dot(m, v)
             c2 = np.dot(v, r)
@@ -128,8 +135,12 @@ class Fitter:
     def _generate_chi_sq_uncovariant(data, errors, fit_range, fit_func):
         #chi_sq = GenericChi2(fit_func, data, errors, fit_range)
         def chi_sq(args):
-            return sum([(data[t] - fit_func(t, *args))**2 / (errors[t])**2
-                        for t in fit_range]) / len(fit_range)
+            ff = fit_func(fit_range, *args)
+            return sum((data - ff)**2 / errors**2) / len(fit_range)
+            # return sum([(data[t] - ff[t])**2 / (errors[t])**2
+            #             for t in fit_range]) / len(fit_range)
+            # return sum([(data[t] - fit_func(t, *args))**2 / (errors[t])**2
+            #             for t in fit_range]) / len(fit_range)
         return chi_sq
 
         # def _generate_chi_sq_hessian(self, errors, fit_range, hessian):
@@ -205,5 +216,6 @@ def fit_hadron(hadron, initial_value=None, fit_range=None, covariant=False,
         fitter = method(fit_func=hadron.fit_func,
                         resampler='jackknife')
     return fitter.fit(hadron.data, hadron.central_errs,
-                      initial_value=initial_value, fit_range=fit_range,
+                      initial_value=initial_value,
+                      fit_range=fit_range,
                       covariant=covariant, **kwargs)
