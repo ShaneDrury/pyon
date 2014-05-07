@@ -3,13 +3,39 @@ Should be able to use multiple backends as long as they implement the Python
 Database Specification v2.0 (PEP 249). Sqlite3 is default as it doesn't
 require the user to run a database server.
 """
-import sqlite3
 
 
-def main():
-    conn = sqlite3.connect('qed.db')
-    c = conn.cursor()
-    print(c)
+class ListType(object):
+    def __init__(self, d):
+        self.data = d
+
+    def __repr__(self):
+        expr = "("
+        for d in self.data:
+            expr += "{};".format(d)
+        expr = expr[:-1]
+        expr += ")"
+        return expr
+
+
+def adapt_list_type(list_type_obj):
+    data = list_type_obj.data
+    expr = ""
+    for d in data:
+        expr += "{};".format(d)
+    expr = expr[:-1]
+    return expr.encode('ascii')
+
+
+def convert_float_list(s):
+    data = tuple(map(float, s.split(b";")))
+    return data
+
+
+def convert_int_list(s):
+    data = tuple(map(int, s.split(b";")))
+    return data
+
 
 # class Database(object):
 #     """

@@ -1,6 +1,3 @@
-registered_views = {}
-
-
 class View(object):
     queryset = None
     data_source = None

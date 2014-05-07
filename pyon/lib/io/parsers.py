@@ -1,7 +1,7 @@
 from itertools import chain
 from pyon.lib.io.folder import get_list_of_files
 from pyon.lib.io.formats import parse_iwasaki_32c_charged_meson_file
-from pyon.lib.register import Register
+#from pyon.lib.register import Register
 
 registered_parsers = {}
 
@@ -22,7 +22,7 @@ class Parser(object):
         return self.get_from_files(get_list_of_files(folder))
 
 
-@Register(registered_parsers, 'iwasaki_32c')
+#@Register(registered_parsers, 'iwasaki_32c')
 class Iwasaki32c(Parser):
     def get_from_file(self, file_name):
         return parse_iwasaki_32c_charged_meson_file(file_name)

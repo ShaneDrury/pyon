@@ -5,4 +5,3 @@ class Model(object):
     we're interested in. The methods use a :class:`View`, which is a particular
     aspect of some data source.
     """
-registered_models = {}

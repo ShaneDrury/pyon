@@ -1,23 +1,34 @@
 class QuerySet(object):
-    def __init__(self, data, manager_class=None):
+    def __init__(self, data, manager_class=None, manager_kwargs=None):
         self.data = data
+
         if manager_class is None:
             raise ValueError("Must provide a manager class for a QuerySet")
         self.manager_class = manager_class
-        self.manager = manager_class(self)
+        self.manager_kwargs = manager_kwargs
+        self.manager = manager_class(self)  # must be after setting kwargs
         self._list_data = None
+        self.results = None
 
     def make_query_set(self, data):
-        return QuerySet(data, self.manager_class)
+        return QuerySet(data, self.manager_class,
+                        manager_kwargs=self.manager_kwargs)
 
     def filter(self, **kwargs):
-        return self.make_query_set(self.manager.filter(**kwargs))
+        self.results = self.manager.filter(**kwargs)
+        return self
+        #return self.make_query_set(self.manager.filter(**kwargs))
 
     def exclude(self, **kwargs):
-        return self.make_query_set(self.manager.exclude(**kwargs))
+        self.results = self.manager.exclude(**kwargs)
+        return self
+        #return self.make_query_set(self.manager.exclude(**kwargs))
 
     def all(self):
         return self.data
+
+    def get_manager_kwargs(self):
+        return self.manager_kwargs
 
     def __getitem__(self, item):
         """

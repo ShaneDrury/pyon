@@ -2,7 +2,7 @@ import os
 from random import shuffle
 from numpy import random
 from pyon.lib.fitfunction import pp_flat
-from pyon.lib.fitting import registered_fitters, fit_hadron
+from pyon.lib.fitting import fit_hadron
 from pyon.lib.io.folder import get_list_of_files
 from pyon.lib.io.formats import parse_iwasaki_32c_charged_meson_file, \
     filter_correlators

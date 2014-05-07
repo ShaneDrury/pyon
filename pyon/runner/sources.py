@@ -1,44 +1,15 @@
 import logging
+import sqlite3
 from pyon.lib.manager import DBManager, FileManager
 from pyon.runner.query import QuerySet
 from pyon import registered_parsers
-registered_sources = {}
-
-
-# class Source2:
-#     data_format = None
-#     folder = None
-#     files = None
-#     data_format_kwargs = {}
-#     _data = None
-#
-#     def __init__(self, manager=None):
-#         self.manager = manager  # or DefaultManager()
-#
-#     def get_data(self):
-#         parser = self.get_parser()
-#         if self.files:
-#             return parser.get_from_files(self.files)
-#         elif self.folder:
-#             return parser.get_from_folder(self.folder)
-#
-#     def get_parser(self):
-#         return registered_parsers[self.data_format](**self.data_format_kwargs)
-#
-#     def all(self):
-#         return self.get_queryset()
-#
-#     def get_queryset(self):
-#         if self._data is None:
-#             logging.debug("Getting data from {}".format(self.folder))
-#             self._data = self.get_data()
-#         return QuerySet(self._data)
 
 
 class Source(object):
     def __init__(self, manager=None):
         self.manager = manager
         self._data = None
+        self.manager_args = {}
 
     @property
     def data(self):
@@ -47,15 +18,22 @@ class Source(object):
         return self._data
 
     def filter(self, **kwargs):
-        qs = QuerySet(self.data, self.manager)
+        qs = self._qs_from_data()
         return qs.filter(**kwargs)
 
     def exclude(self, **kwargs):
-        qs = QuerySet(self.data, self.manager)
+        qs = self._qs_from_data()
         return qs.exclude(**kwargs)
 
     def all(self):
-        return QuerySet(self.data, self.manager).all()
+        return self._qs_from_data().all()
+
+    def unique(self, field_name):
+        qs = self._qs_from_data()
+        return qs.unique(field_name)
+
+    def _qs_from_data(self):
+        return QuerySet(self.data, self.manager, self.manager_args)
 
     def _get_data(self):
         pass
@@ -82,5 +60,25 @@ class FileSource(Source):
 
 
 class DBSource(Source):
+    db_path = None
+    table_name = None
+
     def __init__(self):
         super(DBSource, self).__init__(DBManager)
+        self.con = None
+        self.manager_class = DBManager
+        self.manager_args['table_name'] = self.table_name
+
+    def __enter__(self):
+        self._get_data()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.con.close()
+
+    def _get_data(self):
+        logging.debug("Loading DB")
+        self.con = sqlite3.connect(self.db_path,
+                                   detect_types=sqlite3.PARSE_DECLTYPES)
+        return self.con
+

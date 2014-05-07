@@ -1,15 +1,16 @@
 from collections import defaultdict, namedtuple
 import inspect
 from scipy.optimize import minimize
-from pyon.lib.register import Register
-from pyon.lib.resampling import registered_resamplers
+#from pyon.lib.register import Register
+#from pyon.lib.resampling import registered_resamplers
 import numpy as np
+from pyon.lib.resampling import Jackknife
 from pyon.lib.statistics import get_inverse_cov_matrix
 
 
 __author__ = 'srd1g10'
 
-registered_fitters = {}
+#registered_fitters = {}
 
 FitParams = namedtuple('FitParams', ['average_params', 'errs',
                                      'resampled_params'])
@@ -27,12 +28,9 @@ class Fitter:
     :param resampler: The way we calculate the errors e.g. \
     :class:`Jackknife <resampling.Jackknife>`
     """
-    def __init__(self, fit_func=None, resampler='jackknife',
-                 resampler_args=None):
+    def __init__(self, fit_func=None, resampler=Jackknife(n=1)):
         self.fit_func = fit_func
-        if resampler_args is None:
-            resampler_args = {}
-        self.resampler = registered_resamplers[resampler](**resampler_args)
+        self.resampler = resampler
 
     def fit(self, data=None, errors=None, initial_value=None, fit_range=None,
             covariant=False, correlated=False,
@@ -159,7 +157,7 @@ class Fitter:
 
 
 
-@Register(registered_fitters, 'scipy')
+#@Register(registered_fitters, 'scipy')
 class ScipyFitter(Fitter):
     """
     Inherits from :class:`Fitter`.
@@ -211,7 +209,7 @@ def fit_hadron(hadron, initial_value=None, fit_range=None, covariant=False,
     """
     if method is None:
         fitter = ScipyFitter(fit_func=hadron.fit_func,
-                             resampler='jackknife')
+                             resampler=Jackknife(n=1))
     else:
         fitter = method(fit_func=hadron.fit_func,
                         resampler='jackknife')

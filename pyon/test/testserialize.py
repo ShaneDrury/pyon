@@ -2,7 +2,7 @@ import json
 from numpy import random
 from pyon.lib.fitfunction import pp_flat
 #from pyon.lib.fitting import fit_hadron
-from pyon.lib.fitting import registered_fitters
+#from pyon.lib.fitting import registered_fitters
 #from pyon.lib.hadron import Hadron
 from pyon.lib.meson import PseudoscalarMeson
 

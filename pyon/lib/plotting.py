@@ -5,7 +5,7 @@ here implement a common API that forwards stuff to e.g. Pyplot and Gnuplot
 """
 import matplotlib.pyplot as plt
 #from pyon.lib.fitfunction import pp_effective_mass
-from pyon.lib.register import Register
+#from pyon.lib.register import Register
 import numpy as np
 __author__ = 'srd1g10'
 
@@ -41,7 +41,7 @@ class Plotter(object):
         pass
 
 
-@Register(registered_plotters, 'pyplot')
+#@Register(registered_plotters, 'pyplot')
 class PyplotPlotter(Plotter):
     """
     Uses matplotlib.pyplot to do the plotting.

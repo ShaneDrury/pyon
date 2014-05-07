@@ -1,7 +1,5 @@
 __author__ = 'srd1g10'
 
-registered_simulations = {}
-
 
 class Simulation(object):
     """

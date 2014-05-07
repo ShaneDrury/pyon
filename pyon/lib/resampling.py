@@ -1,6 +1,6 @@
 import math
 import numpy as np
-from pyon.lib.register import Register
+#from pyon.lib.register import Register
 
 __author__ = 'srd1g10'
 
@@ -8,7 +8,7 @@ __author__ = 'srd1g10'
 registered_resamplers = {}
 
 
-@Register(registered_resamplers, 'jackknife')
+#@Register(registered_resamplers, 'jackknife')
 class Jackknife:
     """
     Jackknife resampler.
@@ -54,7 +54,7 @@ class Jackknife:
         return np.sqrt(s)
 
 
-@Register(registered_resamplers, 'none')
+#@Register(registered_resamplers, 'none')
 class NoResampler:
     """
     Doesn't do any resampling (for testing mainly)

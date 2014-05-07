@@ -17,7 +17,10 @@ def ap(t, m, z, f, Z, T=64):
 
 
 def pp_flat(t=1, m=1.0, c=1.0, T=64):
-    #  exp seems to be faster when not using numpy arrays
+    """
+    :func:`exp` from math seems to be faster when not using numpy arrays.
+    Ensure you use numpy arrays over a range of t, say to improve speed a lot.
+    """
     return c * (np.exp(-m*t) + np.exp(-m*(T-t)))
 
 
