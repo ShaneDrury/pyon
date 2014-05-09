@@ -41,6 +41,12 @@ class Hadron(object):
         kwargs = parsed_data[0]  # assume all parameters are the same as the first one
         kwargs.pop('data')
         kwargs.pop('config_number')
+        mass_1 = kwargs.pop('mass_1')
+        mass_2 = kwargs.pop('mass_2')
+        kwargs['masses'] = (mass_1, mass_2)
+        charge_1 = kwargs.pop('charge_1')
+        charge_2 = kwargs.pop('charge_2')
+        kwargs['charges'] = (charge_1, charge_2)
         kwargs['config_numbers'] = config_numbers
         return cls(data, **kwargs)
 

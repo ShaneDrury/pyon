@@ -20,27 +20,30 @@ class TestParsing(unittest.TestCase):
     def test_parse_iwasaki(self):
         with open(self.iwasaki_file, 'r') as f:
             raw_data = parse_iwasaki_32c_charged_meson_file(f)
-        filtered_data = filter_correlators(raw_data, source='GAM_5', sink='GAM_5', masses=(0.03, 0.03))
+        filtered_data = filter_correlators(raw_data, source='GAM_5',
+                                           sink='GAM_5', mass_1=0.03, mass_2=0.03)
         self.failUnlessEqual(filtered_data['data'][0], 4.984743e+06)
-        self.failUnlessEqual(filtered_data['masses'], (0.03, 0.03))
+        self.failUnlessEqual(filtered_data['mass_1'], 0.03)
         self.failUnlessEqual(filtered_data['source'], 'GAM_5')
         self.failUnlessEqual(filtered_data['config_number'], 510)
+
 
     def test_fail_parse_iwasaki(self):
         with open(self.iwasaki_file, 'r') as f:
             raw_data = parse_iwasaki_32c_charged_meson_file(f)
         self.assertRaises(ValueError, filter_correlators, raw_data, source='GAM_5', sink='dfjkdfjk',
-                          masses=(0.03, 0.03))
+                          mass_1=0.03)
 
     def test_parse_multiple_iwasaki(self):
         raw_data = []
         for ff in get_list_of_files(self.iwasaki_folder):
             with open(ff, 'r') as f:
                 raw_data.append(parse_iwasaki_32c_charged_meson_file(f))
-        filtered_data = [filter_correlators(rd, source='GAM_5', sink='GAM_5', masses=(0.03, 0.03)) for rd in raw_data]
+        filtered_data = [filter_correlators(rd, source='GAM_5', sink='GAM_5',
+                                            mass_1=0.03, mass_2=0.03) for rd in raw_data]
         filtered_data.sort(key=lambda k: k['config_number'])
         self.assertEqual(filtered_data[0]['data'][0], 4.984743e+06)
-        self.assertEqual(filtered_data[0]['masses'], (0.03, 0.03))
+        self.assertEqual(filtered_data[0]['mass_1'], 0.03)
         self.assertEqual(filtered_data[0]['source'], 'GAM_5')
         self.assertEqual(filtered_data[0]['config_number'], 510)
         self.assertNotEqual(filtered_data[1]['config_number'], 510)

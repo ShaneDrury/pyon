@@ -50,7 +50,8 @@ class TestFitting(unittest.TestCase):
         for ff in get_list_of_files(self.iwasaki_folder):
             with open(ff, 'r') as f:
                 raw_data.append(parse_iwasaki_32c_charged_meson_file(f))
-        filtered_data = [filter_correlators(rd, source='GAM_5', sink='GAM_5', masses=(0.03, 0.03))
+        filtered_data = [filter_correlators(rd, source='GAM_5', sink='GAM_5',
+                                            mass_1=0.03, mass_2=0.03)
                          for rd in raw_data]
         had = PseudoscalarChargedMeson.from_parsed_data(filtered_data)
         had.sort()
