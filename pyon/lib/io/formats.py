@@ -60,28 +60,30 @@ def parse_iwasaki_32c_charged_meson_file(f):
                'data': re_data,
                'im_data': im_data,
                'time_slices': time_slices,
-               'masses': (mass_1, mass_2),
-               'charges': (charge_1, charge_2),
+               'mass_1': mass_1,
+               'mass_2': mass_2,
+               'charge_1': charge_1,
+               'charge_2': charge_2,
                'config_number': config_number}
         data.append(dic)
     return data
 
 
-def filter_correlators(corrs, **kwargs):
-    for corr in corrs:
-        matched = True
-        for k, v in kwargs.items():
-            if corr[k] != v:
-                matched = False
-                break
-        if matched:
-            return corr
-    raise ValueError("Cannot match {}".format(kwargs))
-
-
-def filter_one_correlator(corr, **kwargs):
-    matched = True
-    for k, v in kwargs.items():
-        if corr[k] != v:
-            matched = False
-    return matched
+# def filter_correlators(corrs, **kwargs):
+#     for corr in corrs:
+#         matched = True
+#         for k, v in kwargs.items():
+#             if corr[k] != v:
+#                 matched = False
+#                 break
+#         if matched:
+#             return corr
+#     raise ValueError("Cannot match {}".format(kwargs))
+#
+#
+# def filter_one_correlator(corr, **kwargs):
+#     matched = True
+#     for k, v in kwargs.items():
+#         if corr[k] != v:
+#             matched = False
+#     return matched

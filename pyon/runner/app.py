@@ -18,32 +18,10 @@ class App(object):
         self.dump_name = 'dump.json'
         self.simulations = {}
 
-    # def _populate_registers(self, directory):
-    #     """
-    #     Populates the registers with anything that used the appropriate
-    #     decorator.
-    #     """
-    #     # for mod in self.module_names:
-    #     #     imp.load_source(mod, os.path.join(directory, mod + '.py'))
-    #     # #  Now the modules are loaded and the relevant registers
-    # are populated.
-    #     # from pyon import registered_sources, registered_views, \
-    #     #     registered_models, registered_simulations
-    #     #
-    #     # self.registers['sources'] = registered_sources
-    #     # self.registers['views'] = registered_views
-    #     # self.registers['models'] = registered_models
-    #     # self.registers['simulations'] = registered_simulations
-
     def register_simulation(self, sim, sim_name):
         if sim_name not in self.simulations:
             self.simulations[sim_name] = sim
-        #self.register_to_dict('simulations', sim_name, sim)
 
-    # def register_to_dict(self, register_to, name, f):
-    #     dic = getattr(self, register_to)
-    #     if name not in dic:
-    #         dic[name] = f
 
     def main(self):
         logging.debug("Running App: {}".format(self.name))

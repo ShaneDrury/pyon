@@ -4,9 +4,6 @@ We want to have the same syntax for common use plotting regardless of what progr
 here implement a common API that forwards stuff to e.g. Pyplot and Gnuplot
 """
 import matplotlib.pyplot as plt
-#from pyon.lib.fitfunction import pp_effective_mass
-#from pyon.lib.register import Register
-import numpy as np
 __author__ = 'srd1g10'
 
 registered_plotters = {}
@@ -41,7 +38,6 @@ class Plotter(object):
         pass
 
 
-#@Register(registered_plotters, 'pyplot')
 class PyplotPlotter(Plotter):
     """
     Uses matplotlib.pyplot to do the plotting.

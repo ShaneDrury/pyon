@@ -52,12 +52,28 @@ class Hadron(object):
         """
         return cls(**json.loads(json_data))
 
-    @classmethod
-    def from_view(cls, view):
-        """
+    # @classmethod
+    # def from_view(cls, view):
+    #     return cls.from_parsed_data(view.data)
 
-        """
-        return cls.from_parsed_data(view.data)
+    @classmethod
+    def from_queryset(cls, qs):
+        data = [[s.re for s in q.data.all()] for q in qs]
+        im_data = [[s.im for s in q.data.all()] for q in qs]
+        config_numbers = [q.config_number for q in qs]
+        q = qs[0]
+        time_slices = [s.t for s in q.data.all()]
+        kwargs = {
+            'source': q.source,
+            'sink': q.sink,
+            'time_slices': time_slices,
+            'im_data': im_data,
+            'masses': (q.mass_1, q.mass_2),
+            'charges': (q.charge_1, q.charge_2),
+            'config_numbers': config_numbers
+
+        }
+        return cls(data, **kwargs)
 
     def __str__(self):
         raise NotImplementedError

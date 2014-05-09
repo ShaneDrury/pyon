@@ -1,14 +1,8 @@
 import math
 import numpy as np
-#from pyon.lib.register import Register
-
 __author__ = 'srd1g10'
 
 
-registered_resamplers = {}
-
-
-#@Register(registered_resamplers, 'jackknife')
 class Jackknife:
     """
     Jackknife resampler.
@@ -54,7 +48,6 @@ class Jackknife:
         return np.sqrt(s)
 
 
-#@Register(registered_resamplers, 'none')
 class NoResampler:
     """
     Doesn't do any resampling (for testing mainly)
@@ -66,8 +59,3 @@ class NoResampler:
     @staticmethod
     def calculate_errors(average_params, resampled_params):
         return np.std(resampled_params)
-
-# def jackknife_reduce(data, n=1):
-#     """Returns averaged jackknife lists"""
-#     lists = [np.average(l, axis=0) for l in generate_jackknife_samples(data, n)]
-#     return lists

@@ -1,8 +1,6 @@
 from collections import defaultdict, namedtuple
 import inspect
 from scipy.optimize import minimize
-#from pyon.lib.register import Register
-#from pyon.lib.resampling import registered_resamplers
 import numpy as np
 from pyon.lib.resampling import Jackknife
 from pyon.lib.statistics import get_inverse_cov_matrix
@@ -212,7 +210,7 @@ def fit_hadron(hadron, initial_value=None, fit_range=None, covariant=False,
                              resampler=Jackknife(n=1))
     else:
         fitter = method(fit_func=hadron.fit_func,
-                        resampler='jackknife')
+                        resampler=Jackknife(n=1))
     return fitter.fit(hadron.data, hadron.central_errs,
                       initial_value=initial_value,
                       fit_range=fit_range,

@@ -13,7 +13,8 @@ setup(
     author='Shane Drury',
     author_email='shane.r.drury@gmail.com',
     description=description,
-    install_requires=['numpy', 'scipy', 'simplejson', 'Jinja2'],
+    install_requires=['numpy', 'scipy', 'simplejson', 'Jinja2', 'django',
+                      'django-picklefield'],
     classifiers=[
         'Environment :: Console',
         'Intended Audience :: Science/Research',
