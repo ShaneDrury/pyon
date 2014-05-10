@@ -6,7 +6,7 @@ from pyon.lib.io.folder import get_list_of_files
 from pyon.lib.io.formats import parse_iwasaki_32c_charged_meson_file, \
     filter_correlators
 from pyon.lib.meson import PseudoscalarChargedMeson
-from pyon.lib.resampling import Jackknife
+#from pyon.lib.resampling import Jackknife
 
 __author__ = 'srd1g10'
 import unittest

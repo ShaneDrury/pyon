@@ -3,14 +3,14 @@ __author__ = 'srd1g10'
 
 class Simulation(object):
     """
-    A simulation combines a view (aspect of data) and a model to perform some
-    calculation with the data and the formulae of the model. The methods
+    #A simulation combines a view (aspect of data) and a model to perform some
+    #calculation with the data and the formulae of the model. The methods
     :func:`get_results` and :func:`get_plots` implement the way the results
     of the simulation are returned and visualised.
     """
-    def __init__(self, model, view):
-        self.model = model
-        self.view = view
+    def __init__(self):
+        #self.model = model
+        #self.view = view
         self.simulation_params = None
         self.simulation_results = None
 
