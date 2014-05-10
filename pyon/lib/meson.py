@@ -24,6 +24,57 @@ class Meson(Hadron):
     def __str__(self):
         return "{}, Masses: {}".format(self._name, self.masses)
 
+    @classmethod
+    def from_parsed_data(cls, parsed_data):
+        """
+        Create a :class:`Hadron` from ``parsed_data``. This handles all the \
+        duplicate information that the parsed data
+        might have. The ``parsed_data`` will be the return value from e.g. \
+        :func:`parse_iwasaki_32c_charged_meson_file \
+        <.io.formats.parse_iwasaki_32c_charged_meson_file>`
+        """
+        data = [fd['data'] for fd in parsed_data]
+        config_numbers = [fd['config_number'] for fd in parsed_data]
+        kwargs = parsed_data[0]  # assume all parameters are the same as the first one
+        kwargs.pop('data')
+        kwargs.pop('config_number')
+        mass_1 = kwargs.pop('mass_1')
+        mass_2 = kwargs.pop('mass_2')
+        kwargs['masses'] = (mass_1, mass_2)
+        charge_1 = kwargs.pop('charge_1')
+        charge_2 = kwargs.pop('charge_2')
+        kwargs['charges'] = (charge_1, charge_2)
+        kwargs['config_numbers'] = config_numbers
+        return cls(data, **kwargs)
+
+
+    @classmethod
+    def from_queryset(cls, qs):
+        data = []
+        im_data = []
+        for q in qs:
+            corr = q.data.all()
+            data.append([s.re for s in corr])
+            im_data.append([s.im for s in corr])
+        config_numbers = [q.config_number for q in qs]
+        q = qs[0]
+        time_slices = [s.t for s in q.data.all()]
+        kwargs = {
+            'source': q.source,
+            'sink': q.sink,
+            'time_slices': time_slices,
+            'im_data': im_data,
+            'masses': (q.mass_1, q.mass_2),
+            'charges': (q.charge_1, q.charge_2),
+            'config_numbers': config_numbers
+
+        }
+        return cls(data, **kwargs)
+
+    @staticmethod
+    def _fold_one(corr, t_ext):
+        return [0.5*(corr[t] + corr[(t_ext-t) % t_ext]) for t in range(t_ext)]
+
     @property
     def _name(self):
         return "Meson"
