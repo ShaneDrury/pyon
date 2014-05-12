@@ -1,65 +1,67 @@
 import hashlib
-import imp
 import simplejson
 import os
 import logging
 import time
+from importlib import import_module
 
 
-class App(object):
-    def __init__(self, directory, name=None, dump_dir=None, template=None,
+class Project(object):
+    def __init__(self, name=None, dump_dir=None,
                  db_path=None):
         self.name = name or time.strftime("%Y%m%d-%H%M%S")
-        self.simulation_results = {}
+        self.measurement_results = {}
         self.dump_dir = dump_dir
-        self.template = template
         self.db_path = db_path
         self.report_name = 'report.html'
         self.dump_name = 'dump.json'
-        self.simulations = {}
+        self.measurements = {}
 
-    def register_simulation(self, sim, sim_name):
-        if sim_name not in self.simulations:
-            self.simulations[sim_name] = sim
+    def register_measurement(self, measurement):
+        mod_path, _, meas_name = measurement.rpartition('.')
+        mod = import_module(mod_path)
+        meas_func = getattr(mod, meas_name)
+        template = getattr(mod, 'template')
 
+        if meas_name not in self.measurements:
+            self.measurements[meas_name] = {'f': meas_func,
+                                            'template': template}
 
     def main(self):
-        logging.debug("Running App: {}".format(self.name))
-        logging.debug("Simulations: {}".format(self.simulations))
-        for sim_name, sim in self.simulations.items():
-            logging.info("Doing {}".format(sim_name))
-            my_sim = sim()
-            sim_results = my_sim.get_results()
-            sim_plots = my_sim.get_plots()
-            self.simulation_results[sim_name] = sim_results
+        logging.debug("Running Project: {}".format(self.name))
+        logging.debug("measurements: {}".format(self.measurements))
+        for measurement_name, meas in self.measurements.items():
+            logging.info("Doing {}".format(measurement_name))
+            measurement_results = meas['f']()
+            template = meas['template']
+            #sim_plots = my_sim.get_plots()
+            self.measurement_results[measurement_name] = measurement_results
 
             if self.dump_dir:
-                self.dump_result(sim_name, sim_results)
+                self.dump_result(measurement_name, measurement_results)
 
-            if self.template:
-                self.write_report(sim_name, time.strftime("%c"), sim_results)
+            if template:
+                self.write_report(template, measurement_name,
+                                  time.strftime("%c"), measurement_results)
 
-    def dump_result(self, sim_name, sim_results):
-        dump_path = os.path.join(self.dump_dir,
-                                 self.name
-                                 + '_' + sim_name)
+    def dump_result(self, measurement_name, measurement_results):
+        dump_path = os.path.join(self.dump_dir, measurement_name)
         if not os.path.exists(dump_path):
             os.mkdir(dump_path)
         logging.info("Dumping results to {}".format(dump_path))
-        to_dump = self.dumps(sim_name, sim_results)
+        to_dump = self.dumps(measurement_name, measurement_results)
         with open(os.path.join(dump_path, self.dump_name), 'w') as f:
             simplejson.dump(to_dump, f, namedtuple_as_object=True)
 
-    def write_report(self, sim_name, date, sim_results):
+    def write_report(self, template, measurement_name, date, measurement_results):
         to_report = {}
-        for k, v in sim_results.items():
+        for k, v in measurement_results.items():
             vv = v._asdict()
             vv['hash'] = self.hash_name(k)
             to_report[k] = vv
-        rendered = self.render_template(self.template, sim_name, date,
+        rendered = self.render_template(template, measurement_name, date,
                                         to_report)
-        report_dir = os.path.join(self.dump_dir,
-                                  self.name + '_' + sim_name)
+        report_dir = os.path.join(self.dump_dir, measurement_name)
         if not os.path.exists(report_dir):
             os.mkdir(report_dir)
         with open(os.path.join(report_dir, self.report_name), 'w') as f:
@@ -78,18 +80,18 @@ class App(object):
             result = simplejson.load(f, namedtuple_as_object=True)
         return result
 
-    def dumps(self, sim_name, results):
+    def dumps(self, measurement_name, results):
         to_dump = self._sanitize_dic(results)
         to_dump['date'] = time.strftime("%c")
-        to_dump['sim_name'] = sim_name
+        to_dump['measurement_name'] = measurement_name
         return to_dump
 
     @staticmethod
-    def render_template(template, sim_name, date, results):
+    def render_template(template, measurement_name, date, results):
         template_dic = {
-            'title': sim_name,
-            'sim_results': results,
-            'sim_date': date,
+            'title': measurement_name,
+            'measurement_results': results,
+            'measurement_date': date,
         }
         rendered = template.render(**template_dic)
         return rendered

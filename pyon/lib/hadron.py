@@ -2,7 +2,6 @@ import numpy as np
 from pyon.lib.fitfunction import effective_mass_pp
 from pyon.lib.resampling import Jackknife
 import json
-import logging
 
 
 class Hadron(object):
