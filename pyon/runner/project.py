@@ -53,7 +53,8 @@ class Project(object):
         with open(os.path.join(dump_path, self.dump_name), 'w') as f:
             simplejson.dump(to_dump, f, namedtuple_as_object=True)
 
-    def write_report(self, template, measurement_name, date, measurement_results):
+    def write_report(self, template, measurement_name, date,
+                     measurement_results):
         to_report = {}
         for k, v in measurement_results.items():
             vv = v._asdict()
