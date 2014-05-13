@@ -1,8 +1,12 @@
 import os
 import sys
+import collections
+import six
+
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "django.conf.global_settings")
 
 from django.core import management
+from django.conf import settings
 
 def get_commands():
 
@@ -35,6 +39,42 @@ def get_commands():
 
 class ManagementUtility(management.ManagementUtility):
 
+    def main_help_text(self, commands_only=False):
+        """
+        Returns the script's main help text, as a string.
+        """
+        if commands_only:
+            usage = sorted(get_commands().keys())
+        else:
+            usage = [
+                "",
+                "Type '%s help <subcommand>' for help on a specific subcommand." % self.prog_name,
+                "",
+                "Available subcommands:",
+            ]
+            commands_dict = collections.defaultdict(lambda: [])
+            for name, app in six.iteritems(get_commands()):
+                if app == 'pyon.core' or app == "django.core":
+                    app = 'pyon'
+                else:
+                    app = app.rpartition('.')[-1]
+                commands_dict[app].append(name)
+            style = management.color_style()
+            for app in sorted(commands_dict.keys()):
+                usage.append("")
+                usage.append(style.NOTICE("[%s]" % app))
+                for name in sorted(commands_dict[app]):
+                    usage.append(" %s" % name)
+            # Output an extra note if settings are not properly configured
+            try:
+                settings.INSTALLED_APPS
+            except management.ImproperlyConfigured as e:
+                usage.append(style.NOTICE(
+                    "Note that only Django core commands are listed as settings "
+                    "are not properly configured (error: %s)." % e))
+
+        return '\n'.join(usage)
+
     def fetch_command(self, subcommand):
         
         commands = get_commands()
@@ -57,6 +97,5 @@ def execute_from_command_line(argv=None):
     """
     A simple method that runs a ManagementUtility.
     """
-    print("TADA")
     utility = ManagementUtility(argv)
     utility.execute()
