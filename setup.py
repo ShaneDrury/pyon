@@ -24,4 +24,8 @@ setup(
         'Topic :: Scientific/Engineering :: Physics',
         'Topic :: Scientific/Engineering :: Mathematics',
     ],
+    entry_points={
+        'console_scripts': ['pyon-admin = '
+                            'pyon.core.management:execute_from_command_line'],
+    }
 )
