@@ -3,16 +3,22 @@ import sys
 import collections
 import six
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "django.conf.global_settings")
+#  I don't think this is necessary. In fact it probably shouldn't be here since
+#  the user may be running the script from within their app in which case they
+#  will want their own settings here.
+#  django.conf.settings uses whatever settings module is in the environment
+#  variable
+#os.environ.setdefault("DJANGO_SETTINGS_MODULE", "django.conf.global_settings")
 
-from django.core import management
 from django.conf import settings
+from django.core import management
+settings.configure()  # Fixes the warning line... I don't know why though.
+
 
 def get_commands():
-
     django_commands \
-      = {name: 'django.core'
-         for name in management.find_commands(management.__path__[0])}
+        = {name: 'django.core'
+           for name in management.find_commands(management.__path__[0])}
 
     commands = {name: 'pyon.core'
                 for name in management.find_commands(__path__[0])}
@@ -36,6 +42,7 @@ def get_commands():
             pass # No management module - ignore this app
     """
     return django_commands
+
 
 class ManagementUtility(management.ManagementUtility):
 
@@ -70,20 +77,20 @@ class ManagementUtility(management.ManagementUtility):
                 settings.INSTALLED_APPS
             except management.ImproperlyConfigured as e:
                 usage.append(style.NOTICE(
-                    "Note that only Django core commands are listed as settings "
+                    "Note that only Django core commands are listed as settings"
                     "are not properly configured (error: %s)." % e))
 
         return '\n'.join(usage)
 
     def fetch_command(self, subcommand):
-        
+
         commands = get_commands()
-        
+
         try:
             app_name = commands[subcommand]
         except KeyError:
             sys.stderr.write("Unknown command: %r\nType '%s help' for usage.\n" %
-                (subcommand, self.prog_name))
+                             (subcommand, self.prog_name))
             sys.exit(1)
 
         if isinstance(app_name, management.BaseCommand):
@@ -92,7 +99,8 @@ class ManagementUtility(management.ManagementUtility):
             klass = management.load_command_class(app_name, subcommand)
 
         return klass
-        
+
+
 def execute_from_command_line(argv=None):
     """
     A simple method that runs a ManagementUtility.
