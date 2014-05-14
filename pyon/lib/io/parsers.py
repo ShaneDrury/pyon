@@ -16,5 +16,3 @@ class Parser(object):
 
     def get_from_folder(self, folder):
         return self.get_from_files(get_list_of_files(folder))
-
-

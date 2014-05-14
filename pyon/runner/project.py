@@ -1,9 +1,11 @@
 import hashlib
+from jinja2 import Environment, FileSystemLoader
 import simplejson
 import os
 import logging
 import time
 from importlib import import_module
+from django.conf import settings
 
 
 class Project(object):
@@ -16,16 +18,8 @@ class Project(object):
         self.report_name = 'report.html'
         self.dump_name = 'dump.json'
         self.measurements = {}
-
-    def register_measurement(self, measurement):
-        mod_path, _, meas_name = measurement.rpartition('.')
-        mod = import_module(mod_path)
-        meas_func = getattr(mod, meas_name)
-        template = getattr(mod, 'template')
-
-        if meas_name not in self.measurements:
-            self.measurements[meas_name] = {'f': meas_func,
-                                            'template': template}
+        self.template_env = None
+        self.prepare_template_env()
 
     def main(self):
         logging.debug("Running Project: {}".format(self.name))
@@ -43,6 +37,25 @@ class Project(object):
             if template:
                 self.write_report(template, measurement_name,
                                   time.strftime("%c"), measurement_results)
+
+    def prepare_template_env(self):
+        template_folders = settings.TEMPLATE_DIRS
+        self.template_env = Environment(
+            loader=FileSystemLoader(template_folders))
+
+    def get_template(self, template_name):
+        return self.template_env.get_template(template_name)
+
+    def register_measurement(self, measurement):
+        meas = measurement['measurement']
+        mod_path, _, meas_name = meas.rpartition('.')
+        mod = import_module(mod_path)
+        meas_func = getattr(mod, meas_name)
+        template_name = measurement['template_name']
+        template = self.get_template(template_name)
+        if meas_name not in self.measurements:
+            self.measurements[meas_name] = {'f': meas_func,
+                                            'template': template}
 
     def dump_result(self, measurement_name, measurement_results):
         dump_path = os.path.join(self.dump_dir, measurement_name)
