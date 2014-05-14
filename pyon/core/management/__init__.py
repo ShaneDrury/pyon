@@ -1,46 +1,14 @@
-import os
-import sys
 import collections
-import six
-
-#  I don't think this is necessary. In fact it probably shouldn't be here since
-#  the user may be running the script from within their app in which case they
-#  will want their own settings here.
-#  django.conf.settings uses whatever settings module is in the environment
-#  variable
-#os.environ.setdefault("DJANGO_SETTINGS_MODULE", "django.conf.global_settings")
-
-from django.conf import settings
 from django.core import management
-settings.configure()  # Fixes the warning line... I don't know why though.
+import sys
+from django.utils import six
 
 
 def get_commands():
-    django_commands \
-        = {name: 'django.core'
-           for name in management.find_commands(management.__path__[0])}
-
     commands = {name: 'pyon.core'
                 for name in management.find_commands(__path__[0])}
-
+    django_commands = management.get_commands()
     django_commands.update(commands)
-    """
-    ## STUFF TO BE FINISHED LATER!!!
-    try:
-        settings.INSTALLED_APPS
-    except management.ImproperlyConfigured:
-        app_names = []
-    else:
-        app_configs = apps.get_app_configs()
-        app_names = [app_config.name for app_config in app_configs]
-
-    for app_name in reversed(app_names):
-        try:
-            path = find_management_module(app_name)
-            commands.update({name: app_name for name in find_commands(path)})
-        except ImportError:
-            pass # No management module - ignore this app
-    """
     return django_commands
 
 
@@ -72,14 +40,6 @@ class ManagementUtility(management.ManagementUtility):
                 usage.append(style.NOTICE("[%s]" % app))
                 for name in sorted(commands_dict[app]):
                     usage.append(" %s" % name)
-            # Output an extra note if settings are not properly configured
-            try:
-                settings.INSTALLED_APPS
-            except management.ImproperlyConfigured as e:
-                usage.append(style.NOTICE(
-                    "Note that only Django core commands are listed as settings"
-                    "are not properly configured (error: %s)." % e))
-
         return '\n'.join(usage)
 
     def fetch_command(self, subcommand):
