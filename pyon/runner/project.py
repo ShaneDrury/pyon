@@ -18,19 +18,20 @@ class Project(object):
         self.db_path = db_path
         self.report_name = 'report.html'
         self.dump_name = 'dump.json'
-        self.measurements = []
         self.template_env = None
         self.prepare_template_env()
+        self.measurements = []
         self.populate_measurements()
 
     def main(self):
         logging.debug("Running Project: {}".format(self.name))
-        logging.debug("measurements: {}".format(self.measurements))
+        #logging.debug("measurements: {}".format(self.measurements))
         for meas in self.measurements:
             for sub_meas in meas['meas_list']:
                 measurement_name = meas['name']
                 if sub_meas['name']:
-                    measurement_name = os.path.join(measurement_name, sub_meas['name'])
+                    measurement_name = os.path.join(measurement_name,
+                                                    sub_meas['name'])
                 logging.info("Doing {}".format(measurement_name))
                 measurement = sub_meas['measurement']
                 meas_results = measurement.run()
@@ -59,17 +60,20 @@ class Project(object):
         Traverse from the root measurement module and get all the measurements.
         """
         meas_mod = import_module(settings.ROOT_MEASUREMENTS)
+        #  Get the attribute `measurements` from the `ROOT_MEASUREMENTS`
+        #  module.
         measurements = getattr(meas_mod, 'measurements')
-        for meas in measurements:
-            m = meas['measurement']
+        for meas in measurements:  #  This is an iterable, so iterate over it.
+            m = meas['measurement']  # Get the `measurement` value of the dict
             if isinstance(m, six.string_types):
-                #  Assume it's a sub-module first
+                #  If it's a string, assume it is the name of a module in
+                #  another package.
                 sub_mod = import_module(m)
                 sub_meas_list = getattr(sub_mod, 'measurements')
                 meas_dict = {'name': meas['name'], 'meas_list': sub_meas_list}
                 self.measurements.append(meas_dict)
             else:
-                #  Assume it's an instance of Measurement
+                #  Otherwise, it should be an instance of a Measurement
                 meas_dict = {'name': meas['name'],
                              'meas_list': ({'name': None, 'measurement': m,
                                             'template_name': meas['template_name']},)}
