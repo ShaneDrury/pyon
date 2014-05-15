@@ -13,7 +13,6 @@ def get_commands():
 
 
 class ManagementUtility(management.ManagementUtility):
-
     def main_help_text(self, commands_only=False):
         """
         Returns the script's main help text, as a string.

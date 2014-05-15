@@ -1,4 +1,5 @@
 import hashlib
+from django.utils import six
 from jinja2 import Environment, FileSystemLoader
 import simplejson
 import os
@@ -17,26 +18,33 @@ class Project(object):
         self.db_path = db_path
         self.report_name = 'report.html'
         self.dump_name = 'dump.json'
-        self.measurements = {}
+        self.measurements = []
         self.template_env = None
         self.prepare_template_env()
+        self.populate_measurements()
 
     def main(self):
         logging.debug("Running Project: {}".format(self.name))
         logging.debug("measurements: {}".format(self.measurements))
-        for measurement_name, meas in self.measurements.items():
-            logging.info("Doing {}".format(measurement_name))
-            measurement_results = meas['f']()
-            template = meas['template']
-            #sim_plots = my_sim.get_plots()
-            self.measurement_results[measurement_name] = measurement_results
+        for meas in self.measurements:
+            for sub_meas in meas['meas_list']:
+                measurement_name = meas['name']
+                if sub_meas['name']:
+                    measurement_name += '.' + sub_meas['name']
+                logging.info("Doing {}".format(measurement_name))
+                measurement = sub_meas['measurement']
+                meas_results = measurement.run()
+                template_name = sub_meas.get('template_name', None)
+                #sim_plots = my_sim.get_plots()
+                self.measurement_results[measurement_name] = meas_results
 
-            if self.dump_dir:
-                self.dump_result(measurement_name, measurement_results)
+                if self.dump_dir:
+                    self.dump_result(measurement_name, meas_results)
 
-            if template:
-                self.write_report(template, measurement_name,
-                                  time.strftime("%c"), measurement_results)
+                if template_name:
+                    template = self.get_template(template_name)
+                    self.write_report(template, measurement_name,
+                                      time.strftime("%c"), meas_results)
 
     def prepare_template_env(self):
         template_folders = settings.TEMPLATE_DIRS
@@ -46,16 +54,25 @@ class Project(object):
     def get_template(self, template_name):
         return self.template_env.get_template(template_name)
 
-    def register_measurement(self, measurement):
-        meas = measurement['measurement']
-        mod_path, _, meas_name = meas.rpartition('.')
-        mod = import_module(mod_path)
-        meas_func = getattr(mod, meas_name)
-        template_name = measurement['template_name']
-        template = self.get_template(template_name)
-        if meas_name not in self.measurements:
-            self.measurements[meas_name] = {'f': meas_func,
-                                            'template': template}
+    def populate_measurements(self):
+        """
+        Traverse from the root measurement module and get all the measurements.
+        """
+        meas_mod = import_module(settings.ROOT_MEASUREMENTS)
+        measurements = getattr(meas_mod, 'measurements')
+        for meas in measurements:
+            m = meas['measurement']
+            if isinstance(m, six.string_types):
+                #  Assume it's a sub-module first
+                sub_mod = import_module(m)
+                sub_meas_list = getattr(sub_mod, 'measurements')
+                meas_dict = {'name': meas['name'], 'meas_list': sub_meas_list}
+                self.measurements.append(meas_dict)
+            else:
+                #  Assume it's an instance of Measurement
+                meas_dict = {'name': meas['name'],
+                             'meas_list': ({'name': None, 'measurement': m},)}
+                self.measurements.append(meas_dict)
 
     def dump_result(self, measurement_name, measurement_results):
         dump_path = os.path.join(self.dump_dir, measurement_name)
