@@ -30,7 +30,7 @@ class Project(object):
             for sub_meas in meas['meas_list']:
                 measurement_name = meas['name']
                 if sub_meas['name']:
-                    measurement_name += '.' + sub_meas['name']
+                    measurement_name = os.path.join(measurement_name, sub_meas['name'])
                 logging.info("Doing {}".format(measurement_name))
                 measurement = sub_meas['measurement']
                 meas_results = measurement.run()
@@ -71,13 +71,14 @@ class Project(object):
             else:
                 #  Assume it's an instance of Measurement
                 meas_dict = {'name': meas['name'],
-                             'meas_list': ({'name': None, 'measurement': m},)}
+                             'meas_list': ({'name': None, 'measurement': m,
+                                            'template_name': meas['template_name']},)}
                 self.measurements.append(meas_dict)
 
     def dump_result(self, measurement_name, measurement_results):
         dump_path = os.path.join(self.dump_dir, measurement_name)
         if not os.path.exists(dump_path):
-            os.mkdir(dump_path)
+            os.makedirs(dump_path)
         logging.info("Dumping results to {}".format(dump_path))
         to_dump = self.dumps(measurement_name, measurement_results)
         with open(os.path.join(dump_path, self.dump_name), 'w') as f:
@@ -94,7 +95,7 @@ class Project(object):
                                         to_report)
         report_dir = os.path.join(self.dump_dir, measurement_name)
         if not os.path.exists(report_dir):
-            os.mkdir(report_dir)
+            os.makedirs(report_dir)
         with open(os.path.join(report_dir, self.report_name), 'w') as f:
             f.write(rendered)
 
