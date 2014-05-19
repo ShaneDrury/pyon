@@ -3,7 +3,7 @@ from pyon.lib.io.folder import get_list_of_files
 
 
 class Parser(object):
-    def get_from_file(self, file_name):
+    def get_from_file(self, fp):
         raise NotImplementedError("Implement this in a derived class.")
 
     def get_from_files(self, list_of_files):
