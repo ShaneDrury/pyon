@@ -1,5 +1,7 @@
 from collections import defaultdict, namedtuple
+from functools import partial
 import inspect
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from scipy.optimize import minimize
 import numpy as np
 from pyon.lib.resampling import Jackknife
@@ -61,12 +63,21 @@ class Fitter:
             inv_covar = get_inverse_cov_matrix(pared_data, correlated)
         else:
             inv_covar = None
-        for sample in self.resampler.generate_samples(data):
-            fit_param = self.fit_one(sample, errors, initial_value, fit_range,
-                                     inverse_covariance=inv_covar,
-                                     **kwargs)
-            for k, v in fit_param.items():
-                resampled_params[k].append(v)
+
+        jackknife_samples = self.resampler.generate_samples(data)
+        fit_map = partial(self.fit_one, errors=errors,
+                          initial_value=initial_value, fit_range=fit_range,
+                          inverse_covariance=inv_covar, **kwargs)
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            for fit_param in executor.map(fit_map, jackknife_samples):
+                for k, v in fit_param.items():
+                    resampled_params[k].append(v)
+        # for sample in self.resampler.generate_samples(data):
+        #     fit_param = self.fit_one(sample, errors, initial_value, fit_range,
+        #                              inverse_covariance=inv_covar,
+        #                              **kwargs)
+        #     for k, v in fit_param.items():
+        #         resampled_params[k].append(v)
         average_params = self.fit_one(np.average(data, axis=0),
                                       errors,
                                       initial_value, fit_range,
