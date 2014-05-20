@@ -1,7 +1,8 @@
+import sys
 import collections
 from django.core import management
-import sys
 from django.utils import six
+from django.conf import settings
 
 
 def get_commands():
