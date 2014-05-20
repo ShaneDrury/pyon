@@ -1,4 +1,5 @@
 import sys
+import os
 import collections
 from django.core import management
 from django.utils import six
@@ -59,6 +60,81 @@ class ManagementUtility(management.ManagementUtility):
             klass = management.load_command_class(app_name, subcommand)
 
         return klass
+
+    def autocomplete(self):
+        """
+        Output completion suggestions for BASH.
+
+        The output of this function is passed to BASH's `COMREPLY` variable and
+        treated as completion suggestions. `COMREPLY` expects a space
+        separated string as the result.
+        
+        The `COMP_WORDS` and `COMP_CWORD` BASH environment variables are used
+        to get information about the cli input. Please refer to the BASH
+        man-page for more information about this variables.
+        
+        Subcommand options are saved as pairs. A pair consists of
+        the long option string (e.g. '--exclude') and a boolean
+        value indicating if the option requires arguments. When printing to
+        stdout, a equal sign is appended to options which require arguments.
+        
+        Note: If debugging this function, it is recommended to write the debug
+        output in a separate file. Otherwise the debug output will be treated
+        and formatted as potential completion suggestions.
+        """
+        # Don't complete if user hasn't sourced bash_completion file.
+        if 'DJANGO_AUTO_COMPLETE' not in os.environ:
+            return
+
+        cwords = os.environ['COMP_WORDS'].split()[1:]
+        cword = int(os.environ['COMP_CWORD'])
+
+        try:
+            curr = cwords[cword - 1]
+        except IndexError:
+            curr = ''
+
+        subcommands = list(get_commands()) + ['help']
+        options = [('--help', None)]
+
+        # subcommand
+        if cword == 1:
+            print(' '.join(sorted(filter(lambda x: x.startswith(curr), subcommands))))
+        # subcommand options
+        # special case: the 'help' subcommand has no options
+        elif cwords[0] in subcommands and cwords[0] != 'help':
+            subcommand_cls = self.fetch_command(cwords[0])
+            # special case: 'runfcgi' stores additional options as
+            # 'key=value' pairs
+            if cwords[0] == 'runfcgi':
+                from django.core.servers.fastcgi import FASTCGI_OPTIONS
+                options += [(k, 1) for k in FASTCGI_OPTIONS]
+            # special case: add the names of installed apps to options
+            elif cwords[0] in ('dumpdata', 'sql', 'sqlall', 'sqlclear',
+                    'sqlcustom', 'sqlindexes', 'sqlsequencereset', 'test'):
+                try:
+                    app_configs = apps.get_app_configs()
+                    # Get the last part of the dotted path as the app name.
+                    options += [(app_config.label, 0) for app_config in app_configs]
+                except ImportError:
+                    # Fail silently if DJANGO_SETTINGS_MODULE isn't set. The
+                    # user will find out once they execute the command.
+                    pass
+            options += [(s_opt.get_opt_string(), s_opt.nargs) for s_opt in
+                        subcommand_cls.option_list]
+            # filter out previously specified options from available options
+            prev_opts = [x.split('=')[0] for x in cwords[1:cword - 1]]
+            options = [opt for opt in options if opt[0] not in prev_opts]
+
+            # filter options by current input
+            options = sorted((k, v) for k, v in options if k.startswith(curr))
+            for option in options:
+                opt_label = option[0]
+                # append '=' to options which require args
+                if option[1]:
+                    opt_label += '='
+                print(opt_label)
+        sys.exit(1)
 
 
 def execute_from_command_line(argv=None):
