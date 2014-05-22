@@ -39,7 +39,7 @@ class Project(object):
                 #sim_plots = my_sim.get_plots()
                 self.measurement_results[measurement_name] = meas_results
 
-                if self.dump_dir:
+                if self.dump_dir and meas_results != None:
                     self.dump_result(measurement_name, meas_results)
 
                 if template_name:
