@@ -7,10 +7,10 @@ class MeasurementBase(object):
 
 
 class Measurement(MeasurementBase):
-    def __init__(self, simulation, views=None, simulation_kwargs=None):
+    def __init__(self, simulation, args=[], kwargs={}):
         self.simulation = simulation
-        self.views = views
-        self.sim_kwargs = simulation_kwargs
+        self.args = args
+        self.kwargs = kwargs
 
     def run(self):
-        return self.simulation(*self.views, **self.sim_kwargs)
+        return self.simulation(*self.args, **self.kwargs)
