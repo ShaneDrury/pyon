@@ -1,6 +1,6 @@
 from django.core.management import BaseCommand
 from django.conf import settings
-from pyon.runner.project import Project
+from pyon.core.project import Project
 import logging
 
 
