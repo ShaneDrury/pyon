@@ -1,3 +1,3 @@
-from pyon.core import measurements
+from pyon.core import measurement
 
 # Create your measurements here
