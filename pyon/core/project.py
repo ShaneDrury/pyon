@@ -55,29 +55,43 @@ class Project(object):
     def get_template(self, template_name):
         return self.template_env.get_template(template_name)
 
+    def _populate(self, root_variable, name_stem, short_name):
+        """Generic variable population function"""
+        mod = import_module(root_variable)
+        #  Get the attribute `measurements` from the `ROOT_MEASUREMENTS`
+        #  module.
+        plural = '{}s'.format(name_stem)
+        list_name = '{}_list'.format(short_name)
+        objects = getattr(mod, plural)
+        for obj in objs:  #  This is an iterable, so iterate over it.
+            o = obj[name_stem]  # Get the `measurement` value of the dict
+            if isinstance(o, six.string_types):
+                #  If it's a string, assume it is the name of a module in
+                #  another package.
+                sub_mod = import_module(o)
+                sub_obj_list = getattr(sub_mod, plural)
+                obj_dict = {'name': obj['name'],
+                            list_name: sub_obj_list}
+                getattr(self, plural).append(obj_dict)
+            else:
+                #  Otherwise, it should be an instance of a Measurement
+                obj_dict \
+                  = {'name': meas['name'],
+                     list_name: ({'name': None, 'measurement': o,
+                                  'template_name': obj['template_name']},)}
+                getattr(self, plural).append(obj_dict)
+
     def populate_measurements(self):
         """
         Traverse from the root measurement module and get all the measurements.
         """
-        meas_mod = import_module(settings.ROOT_MEASUREMENTS)
-        #  Get the attribute `measurements` from the `ROOT_MEASUREMENTS`
-        #  module.
-        measurements = getattr(meas_mod, 'measurements')
-        for meas in measurements:  #  This is an iterable, so iterate over it.
-            m = meas['measurement']  # Get the `measurement` value of the dict
-            if isinstance(m, six.string_types):
-                #  If it's a string, assume it is the name of a module in
-                #  another package.
-                sub_mod = import_module(m)
-                sub_meas_list = getattr(sub_mod, 'measurements')
-                meas_dict = {'name': meas['name'], 'meas_list': sub_meas_list}
-                self.measurements.append(meas_dict)
-            else:
-                #  Otherwise, it should be an instance of a Measurement
-                meas_dict = {'name': meas['name'],
-                             'meas_list': ({'name': None, 'measurement': m,
-                                            'template_name': meas['template_name']},)}
-                self.measurements.append(meas_dict)
+        self._populate(settings.ROOT_MEASUREMENTS, 'measurement', 'meas')
+        
+    def populate_parsers(self):
+        """
+        Traverse from the root measurement module and get all the measurements.
+        """
+        self._populate(settings.ROOT_PARSERS, 'parser', 'parse')
 
     def dump_result(self, measurement_name, measurement_results):
         dump_path = os.path.join(self.dump_dir, measurement_name)
