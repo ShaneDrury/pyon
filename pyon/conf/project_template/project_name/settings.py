@@ -13,6 +13,7 @@ TEMPLATE_DIRS = (
     os.path.join(PROJECT_ROOT, '../templates'),
 )
 ROOT_MEASUREMENTS = '{{ project_name }}.measurements'
+ROOT_PARSERS = '{{ project_name }}.parsers'
 
 # Django things
 SECRET_KEY = '{{ secret_key }}'
