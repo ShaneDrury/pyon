@@ -1,5 +1,7 @@
 from pyon.core import measurement
 
+# Create your measurements here, or load some from other measurement apps
+
 measurements = [
 #    {
 #        'name': 'all',
@@ -7,5 +9,3 @@ measurements = [
 #        'template_name': 'path/to/meas/template.html'
 #    }
     ]
-
-# Create your measurements here, or load some from other measurement apps
