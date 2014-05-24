@@ -85,8 +85,8 @@ class Project(object):
         plural = '{}s'.format(name_stem)
         list_name = '{}_list'.format(short_name)
         objects = getattr(mod, plural)
-        for obj in objs:  #  This is an iterable, so iterate over it.
-            o = obj[name_stem]  # Get the `measurement` value of the dict
+        for obj in objects:  #  This is an iterable, so iterate over it.
+            o = obj[name_stem]  # Get the `Runner` value of the dict
             if isinstance(o, six.string_types):
                 #  If it's a string, assume it is the name of a module in
                 #  another package.
