@@ -96,11 +96,15 @@ class Project(object):
                             list_name: sub_obj_list}
                 getattr(self, plural).append(obj_dict)
             else:
-                #  Otherwise, it should be an instance of a Measurement
+                #  Otherwise, it should be an instance of a Runner
+                try:
+                    the_list = ({'name': None, name_stem: o,
+                                 'template_name': obj['template_name']},)
+                except KeyError:
+                    the_list = ({'name': None, name_stem: o,},)
+                
                 obj_dict \
-                  = {'name': meas['name'],
-                     list_name: ({'name': None, 'measurement': o,
-                                  'template_name': obj['template_name']},)}
+                  = {'name': obj['name'], list_name: the_list}
                 getattr(self, plural).append(obj_dict)
 
     def populate_measurements(self):
