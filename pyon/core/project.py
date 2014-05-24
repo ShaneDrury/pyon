@@ -21,32 +21,54 @@ class Project(object):
         self.template_env = None
         self.prepare_template_env()
         self.measurements = []
+        self.parsers = []
+        self.populate_parsers()
         self.populate_measurements()
 
+    def _generic_main(self, objects, name_stem, short_name):
+
+        list_name = "{}_list".format(short_name)
+        results = "{}_results".format(name_stem)
+        store_results = True
+
+        try:
+            getattr(self, results)
+        except AttributeError:
+            logging.info("No {} attribute in Project class. "
+                         "Output from {} objects will not be stored."
+                         .format(results, name_stem))
+            store_results = False
+            
+        for obj in objects:
+            for sub_obj in obj[list_name]:
+                object_name = obj['name']
+                if sub_obj['name']:
+                    object_name = os.path.join(object_name,
+                                               sub_meas['name'])
+                logging.info("Doing {} {}".format(name_stem, object_name))
+                objekt = sub_meas[name_stem]
+                obj_results = objekt.run()
+                template_name = sub_obj.get('template_name', None)
+
+                if store_results:
+                    getattr(self, results)[object_name] = obj_results
+
+                    if self.dump_dir and obj_results != None:
+                        self.dump_result(object_name, obj_results)
+
+                    if template_name:
+                        template = self.get_template(template_name)
+                        self.write_report(template, object_name,
+                                          time.strftime("%c"), obj_results)
+                    
     def main(self):
         logging.debug("Running Project: {}".format(self.name))
-        #logging.debug("measurements: {}".format(self.measurements))
-        for meas in self.measurements:
-            for sub_meas in meas['meas_list']:
-                measurement_name = meas['name']
-                if sub_meas['name']:
-                    measurement_name = os.path.join(measurement_name,
-                                                    sub_meas['name'])
-                logging.info("Doing {}".format(measurement_name))
-                measurement = sub_meas['measurement']
-                meas_results = measurement.run()
-                template_name = sub_meas.get('template_name', None)
-                #sim_plots = my_sim.get_plots()
-                self.measurement_results[measurement_name] = meas_results
+        self._generic_main(self.measurements, "measurement", "meas")
 
-                if self.dump_dir and meas_results != None:
-                    self.dump_result(measurement_name, meas_results)
-
-                if template_name:
-                    template = self.get_template(template_name)
-                    self.write_report(template, measurement_name,
-                                      time.strftime("%c"), meas_results)
-
+    def populatedb(self):
+        logging.debug("Populating Project Databse: {}".format(self.name))
+        self._generic_main(self.parsers, "parser", "parse")
+        
     def prepare_template_env(self):
         template_folders = settings.TEMPLATE_DIRS
         self.template_env = Environment(
