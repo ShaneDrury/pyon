@@ -44,9 +44,9 @@ class Project(object):
                 object_name = obj['name']
                 if sub_obj['name']:
                     object_name = os.path.join(object_name,
-                                               sub_meas['name'])
+                                               sub_obj['name'])
                 logging.info("Doing {} {}".format(name_stem, object_name))
-                objekt = sub_meas[name_stem]
+                objekt = sub_obj[name_stem]
                 obj_results = objekt.run()
                 template_name = sub_obj.get('template_name', None)
 
