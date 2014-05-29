@@ -47,7 +47,7 @@ class Project(object):
                                                sub_obj['name'])
                 logging.info("Doing {} {}".format(name_stem, object_name))
                 objekt = sub_obj[name_stem]
-                obj_results = objekt.run()
+                obj_results = objekt()
                 template_name = sub_obj.get('template_name', None)
 
                 if store_results:
