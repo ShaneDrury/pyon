@@ -6,7 +6,7 @@ Generic runnable object that takes a function and arguments then runs it.
 
 class Runner(object):
 
-    def __init__(self, function, args=[], kwargs={}):
+    def __init__(self, function, *args, **kwargs):
         self.function = function
         self.args = args
         self.kwargs = kwargs
