@@ -47,13 +47,13 @@ class Project(object):
                                                sub_obj['name'])
                 logging.info("Doing {} {}".format(name_stem, object_name))
                 objekt = sub_obj[name_stem]
-                obj_results = objekt.run()
+                obj_results = objekt()
                 template_name = sub_obj.get('template_name', None)
 
                 if store_results:
                     getattr(self, results)[object_name] = obj_results
 
-                    if self.dump_dir and obj_results != None:
+                    if self.dump_dir and obj_results is not None:
                         self.dump_result(object_name, obj_results)
 
                     if template_name:
@@ -85,7 +85,7 @@ class Project(object):
         plural = '{}s'.format(name_stem)
         list_name = '{}_list'.format(short_name)
         objects = getattr(mod, plural)
-        for obj in objects:  #  This is an iterable, so iterate over it.
+        for obj in objects:  # This is an iterable, so iterate over it.
             o = obj[name_stem]  # Get the `Runner` value of the dict
             if isinstance(o, six.string_types):
                 #  If it's a string, assume it is the name of a module in

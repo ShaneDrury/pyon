@@ -153,9 +153,6 @@ class Fitter:
         #     return hess
 
 
-
-
-#@Register(registered_fitters, 'scipy')
 class ScipyFitter(Fitter):
     """
     Inherits from :class:`Fitter`.
