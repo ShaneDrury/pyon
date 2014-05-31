@@ -1,3 +1,4 @@
+import dill
 import numpy as np
 from pyon.lib.fitfunction import effective_mass_pp
 from pyon.lib.resampling import Jackknife

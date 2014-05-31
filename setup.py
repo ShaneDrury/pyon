@@ -14,7 +14,7 @@ setup(
     author_email='shane.r.drury@gmail.com',
     description=description,
     install_requires=['numpy', 'scipy', 'simplejson', 'Jinja2', 'django',
-                      ],
+                      'dill'],
     classifiers=[
         'Environment :: Console',
         'Intended Audience :: Science/Research',
