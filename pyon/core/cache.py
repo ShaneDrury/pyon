@@ -27,5 +27,5 @@ class CachedData(object):
             data = self.func(*args, **kwargs)
             self.set_cache(data)
         else:
-            logging.debug("Accessing Cache")
+            logging.debug("Accessing cache for {}".format(self.cache_key))
         return data
