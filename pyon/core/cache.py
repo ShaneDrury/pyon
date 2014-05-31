@@ -7,6 +7,11 @@ class CachedData(object):
     Use Django's cache framework to store data to speed up execution.
     The CachedData object has its `__call__` method overridden so it acts as a
     function. The func should return a Pickleable object.
+
+    To clear the cache:
+
+        >>> from django.core.cache import cache
+        >>> cache.clear()
     """
     def __init__(self, func, cache_key, timeout=None):
         self.func = func
