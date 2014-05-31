@@ -6,10 +6,6 @@ from pyon.lib.resampling import Jackknife
 from pyon.lib.statistics import get_inverse_cov_matrix
 
 
-__author__ = 'srd1g10'
-
-#registered_fitters = {}
-
 FitParams = namedtuple('FitParams', ['average_params', 'errs',
                                      'resampled_params'])
 """
