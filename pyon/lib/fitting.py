@@ -43,7 +43,7 @@ class Fitter:
         :param errors: Iterable set of errors of each measurement.
         :param initial_value: Initial guesses of the best fit of the \
         parameters in ``fit_func``.
-        :type initial_value: iterable
+        :type initial_value: dict
         :param fit_range: Iterable set of numbers that determine the data \
         points used in the fit. Can be a list of
             iterables if the fit function requires more than one fit range \
@@ -56,6 +56,7 @@ class Fitter:
         """
         resampled_params = defaultdict(list)
         fit_range = np.array(fit_range)
+        initial_value = self._convert_initial_value(initial_value)
         if covariant:
             pared_data = np.array([[d[t] for d in data] for t in fit_range])
             inv_covar = get_inverse_cov_matrix(pared_data, correlated)
@@ -67,6 +68,7 @@ class Fitter:
                                      **kwargs)
             for k, v in fit_param.items():
                 resampled_params[k].append(v)
+
         average_params = self.fit_one(np.average(data, axis=0),
                                       errors,
                                       initial_value, fit_range,
@@ -74,6 +76,15 @@ class Fitter:
         errs = self.resampler.calculate_fit_errors(average_params,
                                                    resampled_params)
         return FitParams(average_params, errs, resampled_params)
+
+    def _convert_initial_value(self, dic):
+        """
+        Some fitting functions need a list instead of a dict as an initial
+        guess, so override this function depending on what the function needs.
+        :param dic: A dict of the initial guesses for the fit.
+        :return:
+        """
+        return dic
 
     def fit_chi_sq(self, **kwargs):
         """
@@ -177,6 +188,16 @@ class ScipyFitter(Fitter):
                        **kwargs)
         fit_params = populate_dict_args(self.fit_func, out.x)
         return fit_params
+
+    def _convert_initial_value(self, dic):
+        """
+        Convert the dict into a list. If we just do dic.values(), the order
+        is not deterministic, so do it in the order of the fit function
+        arguments.
+        """
+        func_args = inspect.getargspec(self.fit_func).args[1:]
+        initial_value = [dic[k] for k in func_args]
+        return initial_value
 
 
 def populate_dict_args(func, vals):
