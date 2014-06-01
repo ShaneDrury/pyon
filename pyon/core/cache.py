@@ -1,4 +1,5 @@
 import logging
+log = logging.getLogger(__name__)
 from django.core.cache import cache
 
 
@@ -7,6 +8,11 @@ class CachedData(object):
     Use Django's cache framework to store data to speed up execution.
     The CachedData object has its `__call__` method overridden so it acts as a
     function. The func should return a Pickleable object.
+
+    Usage:
+
+        >>> cached_func = CachedData(expensive_func, 'key_name')
+        >>> cached_func()
 
     To clear the cache:
 
@@ -31,7 +37,7 @@ class CachedData(object):
             data = self.func(*args, **kwargs)
             self.set_cache(data)
         else:
-            logging.debug("Accessing cache for {}".format(self.cache_key))
+            log.debug("Accessing cache for {}".format(self.cache_key))
         return data
 
 
@@ -61,6 +67,6 @@ class cache_data(object):
                 data = f(*args, **kwargs)
                 cache.set(self.cache_key, data, self.TIMEOUT)
             else:
-                logging.debug("Accessing cache for {}".format(self.cache_key))
+                log.debug("Accessing cache for {}".format(self.cache_key))
             return data
         return wrapped_f
