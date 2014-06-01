@@ -7,6 +7,7 @@ import logging
 import time
 from importlib import import_module
 from django.conf import settings
+log = logging.getLogger(__name__)
 
 
 class Project(object):
@@ -34,7 +35,7 @@ class Project(object):
         try:
             getattr(self, results)
         except AttributeError:
-            logging.info("No {} attribute in Project class. "
+            log.info("No {} attribute in Project class. "
                          "Output from {} objects will not be stored."
                          .format(results, name_stem))
             store_results = False
@@ -45,7 +46,7 @@ class Project(object):
                 if sub_obj['name']:
                     object_name = os.path.join(object_name,
                                                sub_obj['name'])
-                logging.info("Doing {} {}".format(name_stem, object_name))
+                log.info("Doing {} {}".format(name_stem, object_name))
                 objekt = sub_obj[name_stem]
                 obj_results = objekt()
                 template_name = sub_obj.get('template_name', None)
@@ -62,11 +63,11 @@ class Project(object):
                                           time.strftime("%c"), obj_results)
                     
     def main(self):
-        logging.debug("Running Project: {}".format(self.name))
+        log.debug("Running Project: {}".format(self.name))
         self._generic_main(self.measurements, "measurement", "meas")
 
     def populatedb(self):
-        logging.debug("Populating Project Databse: {}".format(self.name))
+        log.debug("Populating Project Databse: {}".format(self.name))
         self._generic_main(self.parsers, "parser", "parse")
         
     def prepare_template_env(self):
@@ -123,7 +124,7 @@ class Project(object):
         dump_path = os.path.join(self.dump_dir, measurement_name)
         if not os.path.exists(dump_path):
             os.makedirs(dump_path)
-        logging.info("Dumping results to {}".format(dump_path))
+        log.info("Dumping results to {}".format(dump_path))
         to_dump = self.dumps(measurement_name, measurement_results)
         with open(os.path.join(dump_path, self.dump_name), 'w') as f:
             simplejson.dump(to_dump, f, namedtuple_as_object=True)
@@ -183,7 +184,7 @@ class Project(object):
                     try:
                         new_dic[repr(key)] = dic[key]
                     except:
-                        logging.debug("Sanitize failed for {}".format(key))
+                        log.debug("Sanitize failed for {}".format(key))
                         pass
             else:
                 new_dic[key] = dic[key]
