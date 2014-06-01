@@ -9,9 +9,6 @@ PROJECT_NAME = '{{ project_name }}'
 PROJECT_ROOT = os.path.normpath(os.path.dirname(__file__))
 DUMP_DIR = os.path.join(PROJECT_ROOT, '../results')
 LOGGING_LEVEL = logging.DEBUG
-LOGGING_FORMAT = "%(levelname)s:%(name)s:%(message)s"
-LOGGING_DATEFMT = None
-LOGGING_FILE = None
 TEMPLATE_DIRS = (
     os.path.join(PROJECT_ROOT, '../templates'),
 )
