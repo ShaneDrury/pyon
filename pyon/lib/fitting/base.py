@@ -175,15 +175,17 @@ def create_generic_chi2_fitter(data, fit_method=None, fit_func=None,
 
 
 def make_chi_sq(data, errors, fit_range, fit_func):
-    data = np.array([data[t] for t in fit_range])
-    errors = np.array([errors[t] for t in fit_range])
+    data = data[fit_range]
+    errors = errors[fit_range]
+
     def chi_sq(m, c):
         ff = fit_func(fit_range, m, c)
         return sum((data - ff)**2 / errors**2) / len(fit_range)
     return chi_sq
 
-
 def make_chi_sq_covar(data, inverse_covariance, fit_range, fit_func):
+    data = data[fit_range]
+    print(inverse_covariance.shape)
     def chi_sq(m, c):
         ff = fit_func(fit_range, m, c)
         # pared_data = np.array([data[t] for t in fit_range])
