@@ -1,9 +1,7 @@
 from collections import namedtuple
 import inspect
 from scipy.optimize import minimize
-from pyon.lib.fitting import scipy
-from pyon.lib.fitting.error import CovariantError, UncovariantError
-from pyon.lib.fitting.util import convert_initial_value, populate_dict_args
+from pyon.lib.fitting.util import populate_dict_args
 from pyon.lib.resampling import Jackknife
 import numpy as np
 from collections import defaultdict
@@ -57,7 +55,7 @@ class SVDFitMethod(FitMethod):
     Solves for x in Ax=b using linalg.lstsq
     """
     def fit(self, fit_obj, initial_value, bounds, fit_func):
-        a, b = fit_obj  # unpack
+        #a, b = fit_obj  # unpack
         pass
 
 
@@ -83,7 +81,7 @@ class ScipyFitMethod(FitMethod):
 class Fitter(FitterBase):
     def __init__(self, data=None, fit_range=None, fit_func=None,
                  initial_value=None, gen_err_func=None, gen_fit_obj=None,
-                 fit_method=None, resampler=None, bounds=None):
+                 fit_method=None, resampler=None, bounds=None, frozen=True):
         self.data = np.array(data)
         self.fit_range = fit_range
         self.fit_func = fit_func
@@ -92,11 +90,22 @@ class Fitter(FitterBase):
         self.gen_fit_obj = gen_fit_obj
         self.fit_method = fit_method
         self.resampler = resampler
-        self.errors = self.gen_err_func(self.data)
+        self.frozen = frozen
+        self.errors = self._gen_errs()
         self.bounds = bounds
 
+    def _gen_errs(self):
+        if self.frozen:
+            errs = self.gen_err_func(self.data)
+            errors = [errs for _ in self.data]
+        else:
+            errors = [self.gen_err_func(sample) for sample in
+                      self.resampler.generate_samples(self.data)]
+        return errors
+
     def _gen_resampled_fit_objs(self):
-        fit_objs = [self.gen_fit_obj(sample, err, self.fit_range, self.fit_func)
+        fit_objs = [self.gen_fit_obj(sample, err, self.fit_range,
+                                     self.fit_func)
                     for sample, err in
                     zip(self.resampler.generate_samples(self.data),
                         self.errors)]
@@ -159,18 +168,18 @@ def fit_chi2_scipy(data, fit_func=None, fit_range=None, initial_value=None,
 def create_generic_chi2_fitter(data, fit_method=None, fit_func=None,
                                fit_range=None, initial_value=None,
                                resampler=None, covariant=False,
-                               correlated=False, bounds=None):
+                               correlated=False, bounds=None, frozen=True):
     resampler = resampler or Jackknife(n=1)
     if covariant:
-        gen_err_func = lambda x: get_inverse_cov_matrix(x, correlated)
+        def gen_err_func(x):
+            return get_inverse_cov_matrix(x[fit_range], correlated)
         gen_fit_obj = make_chi_sq_covar
     else:
         def gen_err_func(x):
-            return [np.std(x, axis=0) / len(x) for _ in x]
-        #gen_err_func = lambda x: np.std(x, axis=0) / len(x)
+            return np.std(x, axis=0) / len(x)
         gen_fit_obj = make_chi_sq
     fitter = Fitter(data, fit_range, fit_func, initial_value, gen_err_func,
-                    gen_fit_obj, fit_method, resampler, bounds)
+                    gen_fit_obj, fit_method, resampler, bounds, frozen)
     return fitter
 
 
@@ -183,12 +192,12 @@ def make_chi_sq(data, errors, fit_range, fit_func):
         return sum((data - ff)**2 / errors**2) / len(fit_range)
     return chi_sq
 
+
 def make_chi_sq_covar(data, inverse_covariance, fit_range, fit_func):
     data = data[fit_range]
-    print(inverse_covariance.shape)
+
     def chi_sq(m, c):
         ff = fit_func(fit_range, m, c)
-        # pared_data = np.array([data[t] for t in fit_range])
         v = np.array(ff - data)
         m = np.array(inverse_covariance)
         r = np.dot(m, v)
