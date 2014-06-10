@@ -39,6 +39,6 @@ def get_inverse_cov_matrix(M, correlated=False):
                 continue
             temp = get_cov(row_i, row_j) / Nconf
             cov_matrix[i][j] = temp
-    cov_matrix = np.matrix(cov_matrix)
+    cov_matrix = np.asmatrix(cov_matrix)
     invcov = cov_matrix.I
-    return invcov
+    return invcov.tolist()
