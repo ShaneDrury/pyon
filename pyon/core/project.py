@@ -1,7 +1,8 @@
+import copy
 import hashlib
 from django.utils import six
 from jinja2 import Environment, FileSystemLoader
-import simplejson
+import pickle
 import os
 import logging
 import time
@@ -18,7 +19,7 @@ class Project(object):
         self.dump_dir = dump_dir
         self.db_path = db_path
         self.report_name = 'report.html'
-        self.dump_name = 'dump.json'
+        self.dump_name = 'dump.pickle'
         self.template_env = None
         self.prepare_template_env()
         self.measurements = []
@@ -36,10 +37,10 @@ class Project(object):
             getattr(self, results)
         except AttributeError:
             log.info("No {} attribute in Project class. "
-                         "Output from {} objects will not be stored."
-                         .format(results, name_stem))
+                     "Output from {} objects will not be stored."
+                     .format(results, name_stem))
             store_results = False
-            
+
         for obj in objects:
             for sub_obj in obj[list_name]:
                 object_name = obj['name']
@@ -61,7 +62,7 @@ class Project(object):
                         template = self.get_template(template_name)
                         self.write_report(template, object_name,
                                           time.strftime("%c"), obj_results)
-                    
+
     def main(self):
         log.debug("Running Project: {}".format(self.name))
         self._generic_main(self.measurements, "measurement", "meas")
@@ -69,7 +70,7 @@ class Project(object):
     def populatedb(self):
         log.debug("Populating Project Databse: {}".format(self.name))
         self._generic_main(self.parsers, "parser", "parse")
-        
+
     def prepare_template_env(self):
         template_folders = settings.TEMPLATE_DIRS
         self.template_env = Environment(
@@ -103,9 +104,9 @@ class Project(object):
                                  'template_name': obj['template_name']},)
                 except KeyError:
                     the_list = ({'name': None, name_stem: o,},)
-                
+
                 obj_dict \
-                  = {'name': obj['name'], list_name: the_list}
+                    = {'name': obj['name'], list_name: the_list}
                 getattr(self, plural).append(obj_dict)
 
     def populate_measurements(self):
@@ -113,7 +114,7 @@ class Project(object):
         Traverse from the root measurement module and get all the measurements.
         """
         self._populate(settings.ROOT_MEASUREMENTS, 'measurement', 'meas')
-        
+
     def populate_parsers(self):
         """
         Traverse from the root measurement module and get all the measurements.
@@ -126,14 +127,17 @@ class Project(object):
             os.makedirs(dump_path)
         log.info("Dumping results to {}".format(dump_path))
         to_dump = self.dumps(measurement_name, measurement_results)
-        with open(os.path.join(dump_path, self.dump_name), 'w') as f:
-            simplejson.dump(to_dump, f, namedtuple_as_object=True)
+        with open(os.path.join(dump_path, self.dump_name), 'wb') as f:
+            pickle.dump(to_dump, f)
 
     def write_report(self, template, measurement_name, date,
                      measurement_results):
         to_report = {}
         for k, v in measurement_results.items():
-            vv = v._asdict()
+            try:
+                vv = v._asdict()  # Convert namedtuple to dict
+            except AttributeError:
+                vv = {'result': v}
             vv['hash'] = self.hash_name(k)
             to_report[k] = vv
         rendered = self.render_template(template, measurement_name, date,
@@ -154,11 +158,11 @@ class Project(object):
     @staticmethod
     def read_result(result_path):
         with open(result_path, 'r') as f:
-            result = simplejson.load(f, namedtuple_as_object=True)
+            result = pickle.load(f)
         return result
 
     def dumps(self, measurement_name, results):
-        to_dump = self._sanitize_dic(results)
+        to_dump = copy.deepcopy(results)
         to_dump['date'] = time.strftime("%c")
         to_dump['measurement_name'] = measurement_name
         return to_dump
@@ -172,20 +176,3 @@ class Project(object):
         }
         rendered = template.render(**template_dic)
         return rendered
-
-    @staticmethod
-    def _sanitize_dic(dic):
-        new_dic = {}
-        for key in dic.keys():
-            if type(key) is not str:
-                try:
-                    new_dic[str(key)] = dic[key]
-                except:
-                    try:
-                        new_dic[repr(key)] = dic[key]
-                    except:
-                        log.debug("Sanitize failed for {}".format(key))
-                        pass
-            else:
-                new_dic[key] = dic[key]
-        return new_dic
