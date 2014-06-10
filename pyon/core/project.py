@@ -9,6 +9,7 @@ import logging
 import time
 from importlib import import_module
 from django.conf import settings
+import matplotlib.pyplot as plt
 log = logging.getLogger(__name__)
 
 
@@ -168,6 +169,7 @@ class Project(object):
             f.write(rendered)
         if not os.path.exists(report_dir):
             os.makedirs(report_dir)
+        plt.close('all')
 
 
     @staticmethod
@@ -205,6 +207,7 @@ class Project(object):
         if not os.path.exists(folder):
             os.makedirs(folder)
         fig.savefig(filename, format='png')
+
 
     def _sanitize_filename(self, key):
         filename = str(key)
