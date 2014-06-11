@@ -10,6 +10,8 @@ import time
 from importlib import import_module
 from django.conf import settings
 import matplotlib.pyplot as plt
+from pyon.core.cache import cache_data
+
 log = logging.getLogger(__name__)
 
 
@@ -57,7 +59,12 @@ class Project(object):
                                                sub_obj['name'])
                 log.info("Doing {} {}".format(name_stem, object_name))
                 objekt = sub_obj[name_stem]
-                obj_results = objekt()  # Do the measurement
+
+                @cache_data(cache_key=object_name)
+                def get_results():
+                    return objekt()
+                obj_results = get_results()
+                #obj_results = objekt()  # Do the measurement
                 template_name = sub_obj.get('template_name', None)
                 plot_objects = sub_obj.get('plots', None)
 
