@@ -1,5 +1,6 @@
 import copy
 import hashlib
+import re
 from django.utils import six
 from jinja2 import Environment, FileSystemLoader
 import pickle
@@ -8,6 +9,9 @@ import logging
 import time
 from importlib import import_module
 from django.conf import settings
+import matplotlib.pyplot as plt
+from pyon.core.cache import cache_data
+
 log = logging.getLogger(__name__)
 
 
@@ -20,12 +24,18 @@ class Project(object):
         self.db_path = db_path
         self.report_name = 'report.html'
         self.dump_name = 'dump.pickle'
+        self.plot_folder = 'plots'
         self.template_env = None
         self.prepare_template_env()
         self.measurements = []
         self.parsers = []
         self.populate_parsers()
         self.populate_measurements()
+        self.filename_replacements = [(r'\s', r''),
+                                      (r'\.', r'_'),
+                                      (r',', r'_'),
+                                      (r'\(', r''),
+                                      (r'\)', r'')]
 
     def _generic_main(self, objects, name_stem, short_name):
 
@@ -49,8 +59,14 @@ class Project(object):
                                                sub_obj['name'])
                 log.info("Doing {} {}".format(name_stem, object_name))
                 objekt = sub_obj[name_stem]
-                obj_results = objekt()
+
+                @cache_data(cache_key=object_name)
+                def get_results():
+                    return objekt()
+                obj_results = get_results()
+                #obj_results = objekt()  # Do the measurement
                 template_name = sub_obj.get('template_name', None)
+                plot_objects = sub_obj.get('plots', None)
 
                 if store_results:
                     getattr(self, results)[object_name] = obj_results
@@ -60,8 +76,9 @@ class Project(object):
 
                     if template_name:
                         template = self.get_template(template_name)
+                        plots = plot_objects(obj_results)
                         self.write_report(template, object_name,
-                                          time.strftime("%c"), obj_results)
+                                          time.strftime("%c"), obj_results, plots)
 
     def main(self):
         log.debug("Running Project: {}".format(self.name))
@@ -131,7 +148,7 @@ class Project(object):
             pickle.dump(to_dump, f)
 
     def write_report(self, template, measurement_name, date,
-                     measurement_results):
+                     measurement_results, plots=None):
         to_report = {}
         for k, v in measurement_results.items():
             try:
@@ -140,13 +157,27 @@ class Project(object):
                 vv = {'result': v}
             vv['hash'] = self.hash_name(k)
             to_report[k] = vv
-        rendered = self.render_template(template, measurement_name, date,
-                                        to_report)
         report_dir = os.path.join(self.dump_dir, measurement_name)
         if not os.path.exists(report_dir):
             os.makedirs(report_dir)
+
+        plot_files = {}
+        for k, v in plots.items():
+            file_name = os.path.join(report_dir,
+                                     self.plot_folder,
+                                     self._sanitize_filename(k)) + '.png'
+            self.save_fig(v, file_name)
+            plot_files[k] = file_name
+
+        rendered = self.render_template(template, measurement_name, date,
+                                        to_report, plot_files)
+
         with open(os.path.join(report_dir, self.report_name), 'w') as f:
             f.write(rendered)
+        if not os.path.exists(report_dir):
+            os.makedirs(report_dir)
+        plt.close('all')
+
 
     @staticmethod
     def hash_name(result_name):
@@ -168,11 +199,25 @@ class Project(object):
         return to_dump
 
     @staticmethod
-    def render_template(template, measurement_name, date, results):
+    def render_template(template, measurement_name, date, results, plots):
         template_dic = {
             'title': measurement_name,
             'measurement_results': results,
             'measurement_date': date,
+            'plots': plots,
         }
         rendered = template.render(**template_dic)
         return rendered
+
+    def save_fig(self, fig, filename):
+        folder = os.path.dirname(filename)
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+        fig.savefig(filename, format='png')
+
+
+    def _sanitize_filename(self, key):
+        filename = str(key)
+        for pattern, repl in self.filename_replacements:
+            filename = re.sub(pattern, repl, filename)
+        return filename

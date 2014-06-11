@@ -46,7 +46,7 @@ class FitMethod(object):
     """
     Fits a `FitObject`.
     """
-    def fit(self, fit_obj, initial_value, bounds, fit_func):
+    def fit(self, fit_obj, initial_value, bounds):
         raise NotImplementedError()
 
 
@@ -54,27 +54,41 @@ class SVDFitMethod(FitMethod):
     """
     Solves for x in Ax=b using linalg.lstsq
     """
-    def fit(self, fit_obj, initial_value, bounds, fit_func):
-        #a, b = fit_obj  # unpack
-        pass
+    def fit(self, fit_obj, initial_value, bounds):
+        a, b = fit_obj
+        m = np.linalg.lstsq(a, b)
+        return m
 
 
 class ScipyFitMethod(FitMethod):
-    @staticmethod
-    def _convert_initial_value(dic, fit_func):
+    def __init__(self, fit_func):
+        self.fit_func = fit_func
+
+    def _convert_initial_value(self, dic):
         """
         Convert the dict into a list. If we just do dic.values(), the order
         is not deterministic, so do it in the order of the fit function
         arguments.
         """
-        func_args = inspect.getargspec(fit_func).args[1:]
+        func_args = inspect.getargspec(self.fit_func).args[1:]
         initial_value = [dic[k] for k in func_args]
         return initial_value
 
-    def fit(self, fit_obj, initial_value, bounds, fit_func):
-        initial_value = self._convert_initial_value(initial_value, fit_func)
-        out = minimize(fit_obj, initial_value, bounds=bounds)
-        fit_params = populate_dict_args(fit_func, out.x)
+    def _convert_fit_output(self, out):
+        return populate_dict_args(self.fit_func, out.x)
+
+    def fit(self, fit_obj, initial_value, bounds):
+        initial_value = self._convert_initial_value(initial_value)
+
+        def to_fit(p):
+            """
+            Scipy expects the function to have one argument, so this is a
+            wrapper to unpack those values and forward them to the fit_obj.
+            """
+            return fit_obj(*p)
+
+        out = minimize(to_fit, initial_value, bounds=bounds)
+        fit_params = self._convert_fit_output(out)
         return fit_params
 
 
@@ -116,8 +130,7 @@ class Fitter(FitterBase):
         fit_objs = self._gen_resampled_fit_objs()
         for fit_obj in fit_objs:
             fit_param = self.fit_method.fit(fit_obj,
-                                            self.initial_value, self.bounds,
-                                            self.fit_func)
+                                            self.initial_value, self.bounds)
             for k, v in fit_param.items():
                 resampled_params[k].append(v)
         return resampled_params
@@ -127,8 +140,7 @@ class Fitter(FitterBase):
                                            np.average(self.errors, axis=0),
                                            self.fit_range, self.fit_func)
         average_params = self.fit_method.fit(average_fit_obj,
-                                             self.initial_value, self.bounds,
-                                             self.fit_func)
+                                             self.initial_value, self.bounds)
         return average_params
 
     def fit(self):
