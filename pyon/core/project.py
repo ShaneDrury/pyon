@@ -63,7 +63,10 @@ class Project(object):
                 @cache_data(cache_key=object_name)
                 def get_results():
                     return objekt()
-                obj_results = get_results()
+                try:
+                    obj_results = get_results()
+                except pickle.PicklingError:
+                    obj_results = objekt()
                 template_name = sub_obj.get('template_name', None)
                 plot_objects = sub_obj.get('plots', None)
 
@@ -144,7 +147,10 @@ class Project(object):
         log.info("Dumping results to {}".format(dump_path))
         to_dump = self.dumps(measurement_name, measurement_results)
         with open(os.path.join(dump_path, self.dump_name), 'wb') as f:
-            pickle.dump(to_dump, f)
+            try:
+                pickle.dump(to_dump, f)
+            except pickle.PicklingError:
+                pass
 
     def write_report(self, template, measurement_name, date,
                      measurement_results, plots=None):
