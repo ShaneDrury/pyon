@@ -64,7 +64,6 @@ class Project(object):
                 def get_results():
                     return objekt()
                 obj_results = get_results()
-                #obj_results = objekt()  # Do the measurement
                 template_name = sub_obj.get('template_name', None)
                 plot_objects = sub_obj.get('plots', None)
 
