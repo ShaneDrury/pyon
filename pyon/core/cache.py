@@ -1,4 +1,6 @@
 import logging
+import re
+
 log = logging.getLogger(__name__)
 from django.core.cache import cache
 
@@ -53,8 +55,13 @@ class cache_data(object):
         >>> def foo():
         ...     return pickleable_data
     """
+    key_replacements = [(r'\s', r'_'),
+                        (r',', r'_'),
+                        (r'\(', r''),
+                        (r'\)', r'')]
+
     def __init__(self, cache_key=None, timeout=None):
-        self.cache_key = cache_key
+        self.cache_key = self._sanitize_key(cache_key)
         self.TIMEOUT = timeout
 
     def __call__(self, f):
@@ -70,3 +77,9 @@ class cache_data(object):
                 log.debug("Accessing cache for {}".format(self.cache_key))
             return data
         return wrapped_f
+
+    def _sanitize_key(self, key):
+        new_key = str(key)
+        for pattern, repl in self.key_replacements:
+            new_key = re.sub(pattern, repl, new_key)
+        return new_key

@@ -50,16 +50,6 @@ class FitMethod(object):
         raise NotImplementedError()
 
 
-class SVDFitMethod(FitMethod):
-    """
-    Solves for x in Ax=b using linalg.lstsq
-    """
-    def fit(self, fit_obj, initial_value, bounds):
-        a, b = fit_obj
-        m = np.linalg.lstsq(a, b)
-        return m
-
-
 class ScipyFitMethod(FitMethod):
     def __init__(self, fit_func):
         self.fit_func = fit_func
