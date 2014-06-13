@@ -46,9 +46,9 @@ class Project(object):
         try:
             getattr(self, results)
         except AttributeError:
-            log.info("No {} attribute in Project class. "
-                     "Output from {} objects will not be stored."
-                     .format(results, name_stem))
+            log.debug("No {} attribute in Project class. "
+                      "Output from {} objects will not be stored."
+                      .format(results, name_stem))
             store_results = False
 
         for obj in objects:
@@ -78,7 +78,10 @@ class Project(object):
 
                     if template_name:
                         template = self.get_template(template_name)
-                        plots = plot_objects(obj_results)
+                        if plot_objects:
+                            plots = plot_objects(obj_results)
+                        else:
+                            plots = None
                         self.write_report(template, object_name,
                                           time.strftime("%c"), obj_results, plots)
 
@@ -155,14 +158,19 @@ class Project(object):
     def write_report(self, template, measurement_name, date,
                      measurement_results, plots=None):
         to_report = {}
-        for k, v in measurement_results.items():
-            try:
-                vv = v._asdict()  # Convert namedtuple to dict
-            except AttributeError:
-                vv = {'result': v}
-            vv['hash'] = self.hash_name(k)
-            to_report[k] = vv
-        report_dir = os.path.join(self.dump_dir, measurement_name)
+        try:
+            for k, v in measurement_results.items():
+                try:
+                    vv = v._asdict()  # Convert namedtuple to dict
+                except AttributeError:
+                    vv = {'result': v}
+                vv['hash'] = self.hash_name(k)
+                to_report[k] = vv
+            report_dir = os.path.join(self.dump_dir, measurement_name)
+        except AttributeError:
+            log.error("Measurement doesn't return a dict.")
+            raise
+
         if not os.path.exists(report_dir):
             os.makedirs(report_dir)
 
@@ -210,7 +218,7 @@ class Project(object):
             'measurement_results': results,
             'measurement_date': date,
             'plots': plots,
-        }
+            }
         rendered = template.render(**template_dic)
         return rendered
 
