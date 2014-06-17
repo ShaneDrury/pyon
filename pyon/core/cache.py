@@ -83,3 +83,8 @@ class cache_data(object):
         for pattern, repl in self.key_replacements:
             new_key = re.sub(pattern, repl, new_key)
         return new_key
+
+
+def cache_func(cache_key, func):
+    cacher = cache_data(cache_key)
+    return cacher(func)

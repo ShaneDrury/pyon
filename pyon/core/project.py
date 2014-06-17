@@ -191,7 +191,6 @@ class Project(object):
             os.makedirs(report_dir)
         plt.close('all')
 
-
     @staticmethod
     def hash_name(result_name):
         result_name = str(result_name)
@@ -227,7 +226,6 @@ class Project(object):
         if not os.path.exists(folder):
             os.makedirs(folder)
         fig.savefig(filename, format='png')
-
 
     def _sanitize_filename(self, key):
         filename = str(key)

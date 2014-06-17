@@ -1,6 +1,7 @@
 from collections import namedtuple
 import inspect
 from scipy.optimize import minimize
+from pyon.lib.fitting.binning import bin_data
 from pyon.lib.fitting.util import populate_dict_args
 from pyon.lib.resampling import Jackknife
 import numpy as np
@@ -85,8 +86,11 @@ class ScipyFitMethod(FitMethod):
 class Fitter(FitterBase):
     def __init__(self, data=None, fit_range=None, fit_func=None,
                  initial_value=None, gen_err_func=None, gen_fit_obj=None,
-                 fit_method=None, resampler=None, bounds=None, frozen=True):
-        self.data = np.array(data)
+                 fit_method=None, resampler=None, bounds=None, frozen=True,
+                 bin_size=1):
+
+        self.bin_size = bin_size
+        self.data = self._gen_data(data)
         self.fit_range = fit_range
         self.fit_func = fit_func
         self.initial_value = initial_value
@@ -97,6 +101,12 @@ class Fitter(FitterBase):
         self.frozen = frozen
         self.errors = self._gen_errs()
         self.bounds = bounds
+
+    def _gen_data(self, data):
+        data = np.array(data)
+        if self.bin_size > 1:
+            data = bin_data(data, self.bin_size)
+        return data
 
     def _gen_errs(self):
         if self.frozen:
@@ -170,7 +180,8 @@ def fit_chi2_scipy(data, fit_func=None, fit_range=None, initial_value=None,
 def create_generic_chi2_fitter(data, fit_method=None, fit_func=None,
                                fit_range=None, initial_value=None,
                                resampler=None, covariant=False,
-                               correlated=False, bounds=None, frozen=True):
+                               correlated=False, bounds=None, frozen=True,
+                               bin_size=1):
     resampler = resampler or Jackknife(n=1)
     if covariant:
         def gen_err_func(x):
@@ -181,7 +192,8 @@ def create_generic_chi2_fitter(data, fit_method=None, fit_func=None,
             return np.std(x, axis=0) / len(x)
         gen_fit_obj = make_chi_sq
     fitter = Fitter(data, fit_range, fit_func, initial_value, gen_err_func,
-                    gen_fit_obj, fit_method, resampler, bounds, frozen)
+                    gen_fit_obj, fit_method, resampler, bounds, frozen,
+                    bin_size)
     return fitter
 
 
