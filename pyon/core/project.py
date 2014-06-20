@@ -29,8 +29,6 @@ class Project(object):
         self.prepare_template_env()
         self.measurements = []
         self.parsers = []
-        self.populate_parsers()
-        self.populate_measurements()
         self.filename_replacements = [(r'\s', r''),
                                       (r'\.', r'_'),
                                       (r',', r'_'),
@@ -53,16 +51,19 @@ class Project(object):
 
         for obj in objects:
             for sub_obj in obj[list_name]:
+                enabled = sub_obj.get('enabled', True)
+                if not enabled:
+                    continue
                 object_name = obj['name']
                 if sub_obj['name']:
                     object_name = os.path.join(object_name,
                                                sub_obj['name'])
                 log.info("Doing {} {}".format(name_stem, object_name))
                 objekt = sub_obj[name_stem]
-
-                @cache_data(cache_key=object_name)
-                def get_results():
-                    return objekt()
+                cacher = cache_data(cache_key=object_name)
+                get_results = cacher(objekt)
+                # def get_results():
+                #     return objekt()
                 try:
                     obj_results = get_results()
                 except pickle.PicklingError:
@@ -87,10 +88,12 @@ class Project(object):
 
     def main(self):
         log.debug("Running Project: {}".format(self.name))
+        self.populate_measurements()
         self._generic_main(self.measurements, "measurement", "meas")
 
     def populatedb(self):
-        log.debug("Populating Project Databse: {}".format(self.name))
+        log.debug("Populating Project Database: {}".format(self.name))
+        self.populate_parsers()
         self._generic_main(self.parsers, "parser", "parse")
 
     def prepare_template_env(self):
@@ -110,6 +113,9 @@ class Project(object):
         list_name = '{}_list'.format(short_name)
         objects = getattr(mod, plural)
         for obj in objects:  # This is an iterable, so iterate over it.
+            enabled = obj.get('enabled', True)
+            if not enabled:
+                continue
             o = obj[name_stem]  # Get the `Runner` value of the dict
             if isinstance(o, six.string_types):
                 #  If it's a string, assume it is the name of a module in
@@ -125,7 +131,7 @@ class Project(object):
                     the_list = ({'name': None, name_stem: o,
                                  'template_name': obj['template_name']},)
                 except KeyError:
-                    the_list = ({'name': None, name_stem: o,},)
+                    the_list = ({'name': None, name_stem: o, },)
 
                 obj_dict \
                     = {'name': obj['name'], list_name: the_list}
