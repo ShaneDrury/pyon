@@ -32,9 +32,9 @@ def get_inverse_cov_matrix(M, correlated=False):
     Nconf = len(M[0])
     cov_matrix = np.zeros((Ndata, Ndata))
     for i in range(Ndata):
-        row_i = M[i,:]
+        row_i = M[i, :]
         for j in range(Ndata):
-            row_j = M[j,:]
+            row_j = M[j, :]
             if i != j and not correlated:
                 continue
             temp = get_cov(row_i, row_j) / Nconf

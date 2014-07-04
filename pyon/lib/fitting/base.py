@@ -1,12 +1,13 @@
-from collections import namedtuple
 import inspect
+from collections import defaultdict, namedtuple
+
 from scipy.optimize import minimize
-from pyon.lib.fitting.binning import bin_data
-from pyon.lib.fitting.util import populate_dict_args
-from pyon.lib.resampling import Jackknife
 import numpy as np
-from collections import defaultdict
+
+from pyon.lib.fitting.util import populate_dict_args, better_arg_spec
+from pyon.lib.resampling import Jackknife
 from pyon.lib.statistics import get_inverse_cov_matrix
+
 
 FitParams = namedtuple('FitParams', ['average_params', 'errs',
                                      'resampled_params'])
@@ -84,13 +85,12 @@ class ScipyFitMethod(FitMethod):
 
 
 class Fitter(FitterBase):
-    def __init__(self, data=None, fit_range=None, fit_func=None,
+    def __init__(self, data=None, x_range=None, fit_range=None, fit_func=None,
                  initial_value=None, gen_err_func=None, gen_fit_obj=None,
-                 fit_method=None, resampler=None, bounds=None, frozen=True,
-                 bin_size=1):
+                 fit_method=None, resampler=None, bounds=None, frozen=True):
 
-        self.bin_size = bin_size
         self.data = self._gen_data(data)
+        self.x_range = x_range
         self.fit_range = fit_range
         self.fit_func = fit_func
         self.initial_value = initial_value
@@ -104,8 +104,7 @@ class Fitter(FitterBase):
 
     def _gen_data(self, data):
         data = np.array(data)
-        if self.bin_size > 1:
-            data = bin_data(data, self.bin_size)
+
         return data
 
     def _gen_errs(self):
@@ -118,8 +117,9 @@ class Fitter(FitterBase):
         return errors
 
     def _gen_resampled_fit_objs(self):
-        fit_objs = [self.gen_fit_obj(sample, err, self.fit_range,
-                                     self.fit_func)
+        # make_chi_sq(data, errors, x_range, fit_func, fit_range=None)
+        fit_objs = [self.gen_fit_obj(sample, err, self.x_range, self.fit_func,
+                                     fit_range=self.fit_range)
                     for sample, err in
                     zip(self.resampler.generate_samples(self.data),
                         self.errors)]
@@ -138,83 +138,115 @@ class Fitter(FitterBase):
     def _get_average_params(self):
         average_fit_obj = self.gen_fit_obj(np.average(self.data, axis=0),
                                            np.average(self.errors, axis=0),
-                                           self.fit_range, self.fit_func)
+                                           self.x_range,
+                                           self.fit_func,
+                                           fit_range=self.fit_range)
         average_params = self.fit_method.fit(average_fit_obj,
                                              self.initial_value, self.bounds)
         return average_params
 
     def fit(self):
-        resampled_params = self._get_resampled_params()
         average_params = self._get_average_params()
+        resampled_params = self._get_resampled_params()
         errs = self.resampler.calculate_fit_errors(average_params,
                                                    resampled_params)
         return FitParams(average_params, errs, resampled_params)
 
 
-def fit_hadron(hadron, initial_value=None, fit_range=None, covariant=False,
-               method=None, correlated=False, **kwargs):
+def fit_hadron(hadron, initial_value=None, x_range=None, fit_range=None,
+               covariant=False, method=None, correlated=False, **kwargs):
     """
     Common use case, uses Scipy for fitting and Jackknife for errors.
     """
     if method is None:
-        fitter = fit_chi2_scipy(hadron.data, hadron.fit_func, fit_range,
-                                initial_value, covariant=covariant,
+        fitter = fit_chi2_scipy(hadron.data, x_range, hadron.fit_func,
+                                fit_range, initial_value, covariant=covariant,
                                 correlated=correlated, **kwargs)
     else:
-        fitter = create_generic_chi2_fitter(hadron.data, method,
+        fitter = create_generic_chi2_fitter(hadron.data, x_range, method,
                                             hadron.fit_func, fit_range,
                                             initial_value, covariant=covariant,
                                             correlated=correlated, **kwargs)
     return fitter.fit()
 
 
-def fit_chi2_scipy(data, fit_func=None, fit_range=None, initial_value=None,
-                   resampler=None, covariant=False, correlated=False,
-                   bounds=None):
-    fitter = create_generic_chi2_fitter(data, ScipyFitMethod, fit_func,
-                                        fit_range, initial_value, resampler,
-                                        covariant, correlated, bounds)
+def fit_chi2_scipy(data, x_range=None, fit_func=None, fit_range=None,
+                   initial_value=None, resampler=None, covariant=False,
+                   correlated=False, bounds=None):
+    fitter = create_generic_chi2_fitter(data, x_range, ScipyFitMethod,
+                                        fit_func, fit_range, initial_value,
+                                        resampler, covariant, correlated,
+                                        bounds)
     return fitter
 
 
-def create_generic_chi2_fitter(data, fit_method=None, fit_func=None,
-                               fit_range=None, initial_value=None,
-                               resampler=None, covariant=False,
-                               correlated=False, bounds=None, frozen=True,
-                               bin_size=1):
+def create_generic_chi2_fitter(data, x_range=None, fit_method=None,
+                               fit_func=None, fit_range=None,
+                               initial_value=None, resampler=None,
+                               covariant=False, correlated=False, bounds=None,
+                               frozen=True):
     resampler = resampler or Jackknife(n=1)
     if covariant:
         def gen_err_func(x):
-            return get_inverse_cov_matrix(x[fit_range], correlated)
+            pared = [xx[fit_range] for xx in x]
+            pared = np.swapaxes(pared, 0, 1)
+            return get_inverse_cov_matrix(pared, correlated)
         gen_fit_obj = make_chi_sq_covar
     else:
-        def gen_err_func(x):
-            return np.std(x, axis=0) / len(x)
+        gen_err_func = gen_err_std
         gen_fit_obj = make_chi_sq
-    fitter = Fitter(data, fit_range, fit_func, initial_value, gen_err_func,
-                    gen_fit_obj, fit_method, resampler, bounds, frozen,
-                    bin_size)
+    fitter = Fitter(data, x_range, fit_range, fit_func, initial_value,
+                    gen_err_func, gen_fit_obj, fit_method, resampler, bounds,
+                    frozen)
     return fitter
 
 
-def make_chi_sq(data, errors, fit_range, fit_func):
-    data = data[fit_range]
-    errors = errors[fit_range]
+def gen_err_std(x):
+    return np.std(x, axis=0) / len(x)
 
-    def chi_sq(m, c):
-        ff = fit_func(fit_range, m, c)
-        return sum((data - ff)**2 / errors**2) / len(fit_range)
+
+def make_chi_sq(data, errors, x_range, fit_func, fit_range=None):
+    if fit_range is not None:
+        data = data[fit_range]
+        errors = errors[fit_range]
+    chi_sq = GenericChi2(data, errors, x_range, fit_func)
     return chi_sq
 
 
-def make_chi_sq_covar(data, inverse_covariance, fit_range, fit_func):
-    data = data[fit_range]
+def make_chi_sq_covar(data, inverse_covariance, x_range, fit_func,
+                      fit_range=None):
+    if fit_range is not None:
+        data = data[fit_range]
+    chi_sq = GenericChi2Covariant(data, inverse_covariance, x_range,
+                                  fit_func)
+    return chi_sq
 
-    def chi_sq(m, c):
-        ff = fit_func(fit_range, m, c)
-        v = np.array(ff - data)
-        m = np.array(inverse_covariance)
+
+class GenericChi2(object):
+    def __init__(self, data, errors, x_range, fit_func):
+        self.fit_func = fit_func
+        self.args = better_arg_spec(fit_func)  # extract function signature
+        self.data = data
+        self.errors = errors
+        self.x_range = x_range
+
+    def __call__(self, *args):
+        ff = self.fit_func(self.x_range, *args)
+        return sum((self.data - ff)**2 / self.errors**2) / len(self.x_range)
+
+
+class GenericChi2Covariant(object):
+    def __init__(self, data, inverse_covariance, x_range, fit_func):
+        self.fit_func = fit_func
+        self.args = better_arg_spec(fit_func)
+        self.data = data
+        self.inverse_cov = inverse_covariance
+        self.x_range = x_range
+
+    def __call__(self, *args):
+        ff = self.fit_func(self.x_range, *args)
+        v = np.array(ff - self.data)
+        m = np.array(self.inverse_cov)
         r = np.dot(m, v)
         c2 = np.dot(v, r)
-        return c2 / len(fit_range)
-    return chi_sq
+        return c2  # / len(self.x_range)

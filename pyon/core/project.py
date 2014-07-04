@@ -181,12 +181,14 @@ class Project(object):
             os.makedirs(report_dir)
 
         plot_files = {}
-        for k, v in plots.items():
-            file_name = os.path.join(report_dir,
-                                     self.plot_folder,
-                                     self._sanitize_filename(k)) + '.png'
-            self.save_fig(v, file_name)
-            plot_files[k] = file_name
+        if plots:
+            for k, v in plots.items():
+                file_name = os.path.join(report_dir,
+                                         self.plot_folder,
+                                         self._sanitize_filename(k)) + '.png'
+                self.save_fig(v, file_name)
+                plot_files[k] = file_name
+            plt.close('all')
 
         rendered = self.render_template(template, measurement_name, date,
                                         to_report, plot_files)
@@ -195,7 +197,7 @@ class Project(object):
             f.write(rendered)
         if not os.path.exists(report_dir):
             os.makedirs(report_dir)
-        plt.close('all')
+
 
     @staticmethod
     def hash_name(result_name):
@@ -217,7 +219,7 @@ class Project(object):
         return to_dump
 
     @staticmethod
-    def render_template(template, measurement_name, date, results, plots):
+    def render_template(template, measurement_name, date, results, plots={}):
         template_dic = {
             'title': measurement_name,
             'measurement_results': results,

@@ -1,6 +1,6 @@
-import dill
 import numpy as np
 from pyon.lib.fitfunction import effective_mass_pp
+from pyon.lib.fitting.binning import bin_data
 from pyon.lib.resampling import Jackknife
 import json
 
@@ -89,7 +89,13 @@ class Hadron(object):
         with huge numbers.
         """
         scale_factor = self.central_data[0]
-        self.data = [[P / scale_factor for P in c] for c in self.data]
+        self.data = self.data / scale_factor
+
+    def bin(self, bin_size=1):
+        """
+        Bin the data to reduce autocorrelation
+        """
+        self.data = bin_data(self.data, bin_size)
 
     def fold(self):
         """
