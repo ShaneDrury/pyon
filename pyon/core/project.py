@@ -11,6 +11,7 @@ from importlib import import_module
 from django.conf import settings
 import matplotlib.pyplot as plt
 from pyon.core.cache import cache_data
+from pyon.core.util import dict_to_ordered_dict
 
 log = logging.getLogger(__name__)
 
@@ -165,6 +166,7 @@ class Project(object):
                      measurement_results, plots=None):
         to_report = {}
         try:
+
             for k, v in measurement_results.items():
                 try:
                     vv = v._asdict()  # Convert namedtuple to dict
@@ -189,7 +191,7 @@ class Project(object):
                 self.save_fig(v, file_name)
                 plot_files[k] = file_name
             plt.close('all')
-
+        to_report = dict_to_ordered_dict(to_report)  # Sort it
         rendered = self.render_template(template, measurement_name, date,
                                         to_report, plot_files)
 
