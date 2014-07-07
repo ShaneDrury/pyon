@@ -1,5 +1,6 @@
 import inspect
 from collections import defaultdict, namedtuple
+import logging
 
 from scipy.optimize import minimize
 import numpy as np
@@ -7,10 +8,12 @@ import numpy as np
 from pyon.lib.fitting.util import populate_dict_args, better_arg_spec
 from pyon.lib.resampling import Jackknife
 from pyon.lib.statistics import get_inverse_cov_matrix
+log = logging.getLogger(__name__)
 
-
-FitParams = namedtuple('FitParams', ['average_params', 'errs',
-                                     'resampled_params'])
+FitParams = namedtuple('FitParams', ['average_params',
+                                     'errs',
+                                     'resampled_params',
+                                     'chi_sq_dof'])
 """
 :class:`FitParams` is a namedtuple that packages the things that \
 :func:`Fitter.fit` returns.
@@ -48,8 +51,13 @@ class FitMethod(object):
     """
     Fits a `FitObject`.
     """
+    fval = None
+
     def fit(self, fit_obj, initial_value, bounds):
         raise NotImplementedError()
+
+    def _convert_initial_value(self, dic):
+        raise NotImplementedError
 
 
 class ScipyFitMethod(FitMethod):
@@ -88,8 +96,7 @@ class Fitter(FitterBase):
     def __init__(self, data=None, x_range=None, fit_range=None, fit_func=None,
                  initial_value=None, gen_err_func=None, gen_fit_obj=None,
                  fit_method=None, resampler=None, bounds=None, frozen=True):
-
-        self.data = self._gen_data(data)
+        self.data = np.array(data)
         self.x_range = x_range
         self.fit_range = fit_range
         self.fit_func = fit_func
@@ -101,11 +108,8 @@ class Fitter(FitterBase):
         self.frozen = frozen
         self.errors = self._gen_errs()
         self.bounds = bounds
-
-    def _gen_data(self, data):
-        data = np.array(data)
-
-        return data
+        self.average_params = None
+        self.average_fit_obj = None
 
     def _gen_errs(self):
         if self.frozen:
@@ -141,16 +145,24 @@ class Fitter(FitterBase):
                                            self.x_range,
                                            self.fit_func,
                                            fit_range=self.fit_range)
-        average_params = self.fit_method.fit(average_fit_obj,
+        self.average_fit_obj = average_fit_obj
+        average_params = self.fit_method.fit(self.average_fit_obj,
                                              self.initial_value, self.bounds)
         return average_params
 
+    def _calculate_chi_sq_dof(self):
+        func_args = inspect.getargspec(self.fit_func).args[1:]
+        c2 = self.fit_method.fval / (len(self.x_range) - len(func_args))
+        return c2
+
     def fit(self):
-        average_params = self._get_average_params()
+        self.average_params = self._get_average_params()
+        # log.info(average_params)
         resampled_params = self._get_resampled_params()
-        errs = self.resampler.calculate_fit_errors(average_params,
+        errs = self.resampler.calculate_fit_errors(self.average_params,
                                                    resampled_params)
-        return FitParams(average_params, errs, resampled_params)
+        c2 = self._calculate_chi_sq_dof()
+        return FitParams(self.average_params, errs, resampled_params, c2)
 
 
 def fit_hadron(hadron, initial_value=None, x_range=None, fit_range=None,
@@ -232,7 +244,7 @@ class GenericChi2(object):
 
     def __call__(self, *args):
         ff = self.fit_func(self.x_range, *args)
-        return sum((self.data - ff)**2 / self.errors**2) / len(self.x_range)
+        return sum((self.data - ff)**2 / self.errors**2)# / len(self.x_range)
 
 
 class GenericChi2Covariant(object):
@@ -250,3 +262,4 @@ class GenericChi2Covariant(object):
         r = np.dot(m, v)
         c2 = np.dot(v, r)
         return c2  # / len(self.x_range)
+

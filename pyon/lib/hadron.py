@@ -14,7 +14,7 @@ class Hadron(object):
     def __init__(self, data=None, config_numbers=None, sort=True, source=None,
                  sink=None, im_data=None,
                  time_slices=None):
-        self.data = data
+        self.data = np.array(data)
         if sort and config_numbers:
             self.config_numbers = config_numbers
             self.sort()
@@ -78,8 +78,8 @@ class Hadron(object):
         """
         Sorts the data using ``config_numbers`` as a key.
         """
-        self.data = [x for (y, x) in sorted(zip(self.config_numbers,
-                                                self.data))]
+        self.data = np.array([x for (y, x) in sorted(zip(self.config_numbers,
+                                                self.data))])
         self.config_numbers.sort()
 
     def scale(self):
@@ -103,7 +103,7 @@ class Hadron(object):
         down the middle time slice.
         """
         t_ext = self.time_extent
-        self.data = [self._fold_one(c, t_ext) for c in self.data]
+        self.data = np.array([self._fold_one(c, t_ext) for c in self.data])
 
     @staticmethod
     def _fold_one(corr, t_ext):

@@ -97,7 +97,7 @@ class PseudoscalarMeson(Meson):
         """
         super(PseudoscalarMeson, self).__init__(data, config_numbers, masses,
                                                 **kwargs)
-        self.fit_func = lambda t, m, c: pp_flat(t, m, c,
+        self.fit_func = lambda t, c, m: pp_flat(t, c, m,
                                                 self.time_extent)
         #self.hess = lambda t, m, c: pp_flat_hess(t, m, c, self.time_extent)
 
@@ -112,7 +112,7 @@ class PseudoscalarChargedMeson(Meson):
         super(PseudoscalarChargedMeson, self).__init__(data, config_numbers,
                                                        masses, **kwargs)
         self.charges = charges
-        self.fit_func = lambda t, m, c: pp_flat(t, m, c,
+        self.fit_func = lambda t, c, m: pp_flat(t, c, m,
                                                 self.time_extent)
         #self.hess = lambda t, m, c: pp_flat_hess(t, m, c, self.time_extent)
 

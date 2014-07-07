@@ -198,7 +198,6 @@ class Project(object):
         if not os.path.exists(report_dir):
             os.makedirs(report_dir)
 
-
     @staticmethod
     def hash_name(result_name):
         result_name = str(result_name)
@@ -219,13 +218,13 @@ class Project(object):
         return to_dump
 
     @staticmethod
-    def render_template(template, measurement_name, date, results, plots={}):
+    def render_template(template, measurement_name, date, results, plots=None):
         template_dic = {
             'title': measurement_name,
             'measurement_results': results,
             'measurement_date': date,
             'plots': plots,
-            }
+        }
         rendered = template.render(**template_dic)
         return rendered
 
