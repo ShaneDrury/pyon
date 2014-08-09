@@ -23,7 +23,9 @@ class Jackknife:
                 if i % selectevery != j:
                     this_list.append(data[i])
             lists.append(this_list)
-        return np.average(lists, axis=1)
+        return np.swapaxes(lists, 0, 1)
+        # return np.array(lists)
+        # return np.average(lists, axis=1)
 
     def calculate_fit_errors(self, central, samples):
         fit_errs = {}
