@@ -81,30 +81,31 @@ class Fitter(FitterBase):
         self._central_fit_obj = None  # Set by _prepare()
         self._fit_objects = None  # Set by _prepare()
         self._fit_funcs = None  # Set by _prepare()
+        self._resampled_data = 0  # Set by _prepare_samples()
+        self._ave_resampled = 0  # Set by _prepare_ave_resampled()
+        self._errors = 0  # Set by _prepare_errors()
         self._prepare()
-
-    def _prepare_ave_resampled(self, resampled_data):
-        ave_resampled = np.average(resampled_data, axis=0)
-        return ave_resampled
 
     def _prepare(self):
         self._prepare_data()
-        resampled_data = self._prepare_samples()
-        ave_resampled = self._prepare_ave_resampled(resampled_data)
+        self._prepare_samples()
+        self._prepare_ave_resampled()
         self._prepare_fit_funcs()
         self._prepare_central_fit_obj()
-        errors = self._prepare_errors(resampled_data)
-        self._prepare_fit_objs(ave_resampled, errors)
+        self._prepare_errors()
+        self._prepare_fit_objs()
 
     def _prepare_samples(self):
-        return self._resampler.generate_samples(self._data)
+        self._resampled_data = self._resampler.generate_samples(self._data)
+
+    def _prepare_ave_resampled(self):
+        self._ave_resampled = np.average(self._resampled_data, axis=0)
 
     def _prepare_data(self):
         self._data = self._data[:, self._x_range]
 
-    def _prepare_errors(self, resampled_data):
-        errors = self._err_gen.generate_errors(resampled_data, self._data)
-        return errors
+    def _prepare_errors(self):
+        self._errors = self._err_gen.generate_errors(self._resampled_data, self._data)
 
     def _prepare_central_fit_obj(self):
         self._central_fit_obj = self._fit_obj_gen.generate(
@@ -112,11 +113,12 @@ class Fitter(FitterBase):
             self._err_gen.generate_central_error(self._data),
             self._central_fit_func, self._x_range)
 
-    def _prepare_fit_objs(self, ave_resampled, errors):
+    def _prepare_fit_objs(self):
         self._fit_objects = [self._fit_obj_gen.generate(sample, err,
                                                         ff,
                                                         self._x_range)
-                             for sample, err, ff in zip(ave_resampled, errors,
+                             for sample, err, ff in zip(self._ave_resampled,
+                                                        self._errors,
                                                         self._fit_funcs)]
 
     def _prepare_fit_funcs(self):
@@ -262,3 +264,11 @@ class ScipyFitMethod(FitMethodBase):
             c2 = out.fun / (len(fit_obj.x_range) - len(fit_obj.args) + 1)
             fit_params['chi_sq_dof'].append(c2)
         return fit_params
+
+
+def map_fit_params_to_dict(fit_params):
+    to_return = {k: FitParams(fit_params.average_params[k],
+                              fit_params.errs[k],
+                              fit_params.resampled_params[k])
+                 for k in fit_params.average_params.keys()}
+    return to_return
