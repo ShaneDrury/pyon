@@ -1,5 +1,7 @@
 import math
 import numpy as np
+from numpy.core.multiarray import ndarray
+
 __author__ = 'srd1g10'
 
 
@@ -21,7 +23,7 @@ class Jackknife(ResamplerBase):
     def __init__(self, n=1):
         self.n = n
 
-    def generate_samples(self, data):
+    def generate_samples(self, data: ndarray):
         length = len(data)
         lists = []
         selectevery = int(length/self.n)
@@ -35,17 +37,17 @@ class Jackknife(ResamplerBase):
         # return np.array(lists)
         # return np.average(lists, axis=1)
 
-    def calculate_fit_errors(self, central, samples):
+    def calculate_fit_errors(self, central: dict, samples: dict) -> dict:
         fit_errs = {}
         for k, central in central.items():
             fit_errs[k] = self._jackknife_error(central, samples[k])
         return fit_errs
 
-    def calculate_errors(self, central, samples):
+    def calculate_errors(self, central: float, samples: ndarray):
         return self._jackknife_error(central, samples)
 
     @staticmethod
-    def _jackknife_error(c, samples):
+    def _jackknife_error(c: float, samples: ndarray):
         if not isinstance(samples, np.ndarray):
             samples = np.array(samples)
         s = 0.0
@@ -62,8 +64,7 @@ class NoResampler(ResamplerBase):
     """
     Doesn't do any resampling (for testing mainly)
     """
-    @staticmethod
-    def generate_samples(data):
+    def generate_samples(self, data):
         return data
 
     @staticmethod

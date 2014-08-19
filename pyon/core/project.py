@@ -2,13 +2,14 @@ import copy
 import hashlib
 import re
 from django.utils import six
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, Template
 import pickle
 import os
 import logging
 import time
 from importlib import import_module
 from django.conf import settings
+from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 from pyon.core.cache import cache_data
 from pyon.core.util import dict_to_ordered_dict
@@ -106,7 +107,9 @@ class Project(object):
     def get_template(self, template_name: str):
         return self.template_env.get_template(template_name)
 
-    def _populate(self, root_variable: str, name_stem: str, short_name: str):
+    def _populate(self, root_variable: str,
+                  name_stem: str,
+                  short_name: str):
         """Generic variable population function"""
         mod = import_module(root_variable)
         #  Get the attribute `measurements` from the `ROOT_MEASUREMENTS`
@@ -163,13 +166,17 @@ class Project(object):
             except pickle.PicklingError:
                 pass
 
-    def write_report(self, template, measurement_name, date,
-                     measurement_results, plots=None):
+    def write_report(self, template: Template,
+                     measurement_name: str,
+                     date: str,
+                     measurement_results: dict,
+                     plots: dict=None):
         to_report = {}
         try:
 
             for k, v in measurement_results.items():
                 try:
+                    # noinspection PyProtectedMember
                     vv = v._asdict()  # Convert namedtuple to dict
                 except AttributeError:
                     vv = {'result': v}
@@ -202,26 +209,30 @@ class Project(object):
             os.makedirs(report_dir)
 
     @staticmethod
-    def hash_name(result_name):
+    def hash_name(result_name: 'str()-able object'):
         result_name = str(result_name)
         hash_object = hashlib.md5(result_name.encode('utf-8'))
         hashed_name = hash_object.hexdigest()
         return hashed_name
 
     @staticmethod
-    def read_result(result_path):
+    def read_result(result_path: str):
         with open(result_path, 'r') as f:
             result = pickle.load(f)
         return result
 
-    def dumps(self, measurement_name, results):
+    def dumps(self, measurement_name: str, results: dict):
         to_dump = copy.deepcopy(results)
         to_dump['date'] = time.strftime("%c")
         to_dump['measurement_name'] = measurement_name
         return to_dump
 
     @staticmethod
-    def render_template(template, measurement_name, date, results, plots=None):
+    def render_template(template: Template,
+                        measurement_name: str,
+                        date,
+                        results,
+                        plots: dict=None):
         template_dic = {
             'title': measurement_name,
             'measurement_results': results,
@@ -231,13 +242,13 @@ class Project(object):
         rendered = template.render(**template_dic)
         return rendered
 
-    def save_fig(self, fig, filename):
+    def save_fig(self, fig: Figure, filename: str):
         folder = os.path.dirname(filename)
         if not os.path.exists(folder):
             os.makedirs(folder)
         fig.savefig(filename, format='png')
 
-    def _sanitize_filename(self, key):
+    def _sanitize_filename(self, key: 'str()-able object'):
         filename = str(key)
         for pattern, repl in self.filename_replacements:
             filename = re.sub(pattern, repl, filename)
