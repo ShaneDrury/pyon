@@ -1,44 +1,46 @@
+from numpy.core.multiarray import ndarray
+
 __author__ = 'srd1g10'
 import numpy as np
 
 
-def get_cov(X, Y):
+def get_cov(x: ndarray, y: ndarray):
     """
     Returns covariance of the two vectors ``X`` and ``Y``.
     Formula is: :math:`Cov(X, Y) = 1/(n - 1) \sum_{i = 1}^{n} (x_i - \hat x) (y_i - \hat y)`
 
-    :param X: Vector of floats
-    :param Y: Vector of floats
+    :param x: Vector of floats
+    :param y: Vector of floats
     :rtype: float
     """
-    N = len(X)
-    mean_x = np.average(X)
-    mean_y = np.average(Y)
-    total = np.sum([(x - mean_x)*(y - mean_y) for x,y in zip(X,Y)])
-    cov = 1.0 / (N - 1.0) * total
+    len_vec = len(x)
+    mean_x = np.average(x)
+    mean_y = np.average(y)
+    total = np.sum([(xx - mean_x)*(yy - mean_y) for xx, yy in zip(x, y)])
+    cov = 1.0 / (len_vec - 1.0) * total
     return cov
 
 
-def get_inverse_cov_matrix(M, correlated=False):
+def get_inverse_cov_matrix(mat: ndarray, correlated: bool=False) -> ndarray:
     """
     Returns the inverse covariance matrix of ``M``.
 
-    :param M: The matrix of floats
+    :param mat: The matrix of floats
     :param correlated: Whether the calculation uses the correlated form or not.
     :type correlated: bool
     :rtype: :class:`numpy.matrix`
     """
-    Ndata = len(M)
-    Nconf = len(M[0])
-    cov_matrix = np.zeros((Ndata, Ndata))
-    for i in range(Ndata):
-        row_i = M[i, :]
-        for j in range(Ndata):
-            row_j = M[j, :]
+    n_data = len(mat)
+    n_conf = len(mat[0])
+    cov_matrix = np.zeros((n_data, n_data))
+    for i in range(n_data):
+        row_i = mat[i, :]
+        for j in range(n_data):
+            row_j = mat[j, :]
             if i != j and not correlated:
                 continue
-            temp = get_cov(row_i, row_j) / Nconf
+            temp = get_cov(row_i, row_j) / n_conf
             cov_matrix[i][j] = temp
     cov_matrix = np.asmatrix(cov_matrix)
     invcov = cov_matrix.I
-    return invcov.tolist()
+    return invcov.A

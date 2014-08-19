@@ -17,8 +17,8 @@ log = logging.getLogger(__name__)
 
 
 class Project(object):
-    def __init__(self, name=None, dump_dir=None,
-                 db_path=None):
+    def __init__(self, name: str=None, dump_dir: str=None,
+                 db_path: str=None):
         self.name = name or time.strftime("%Y%m%d-%H%M%S")
         self.measurement_results = {}
         self.dump_dir = dump_dir
@@ -36,12 +36,12 @@ class Project(object):
                                       (r'\(', r''),
                                       (r'\)', r'')]
 
-    def _generic_main(self, objects, name_stem, short_name):
-
+    def _generic_main(self, objects: list,
+                      name_stem: str,
+                      short_name: str):
         list_name = "{}_list".format(short_name)
         results = "{}_results".format(name_stem)
         store_results = True
-
         try:
             getattr(self, results)
         except AttributeError:
@@ -85,7 +85,8 @@ class Project(object):
                         else:
                             plots = None
                         self.write_report(template, object_name,
-                                          time.strftime("%c"), obj_results, plots)
+                                          time.strftime("%c"), obj_results,
+                                          plots)
 
     def main(self):
         log.debug("Running Project: {}".format(self.name))
@@ -102,10 +103,10 @@ class Project(object):
         self.template_env = Environment(
             loader=FileSystemLoader(template_folders))
 
-    def get_template(self, template_name):
+    def get_template(self, template_name: str):
         return self.template_env.get_template(template_name)
 
-    def _populate(self, root_variable, name_stem, short_name):
+    def _populate(self, root_variable: str, name_stem: str, short_name: str):
         """Generic variable population function"""
         mod = import_module(root_variable)
         #  Get the attribute `measurements` from the `ROOT_MEASUREMENTS`
@@ -150,7 +151,7 @@ class Project(object):
         """
         self._populate(settings.ROOT_PARSERS, 'parser', 'parse')
 
-    def dump_result(self, measurement_name, measurement_results):
+    def dump_result(self, measurement_name: str, measurement_results):
         dump_path = os.path.join(self.dump_dir, measurement_name)
         if not os.path.exists(dump_path):
             os.makedirs(dump_path)

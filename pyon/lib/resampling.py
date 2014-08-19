@@ -3,7 +3,15 @@ import numpy as np
 __author__ = 'srd1g10'
 
 
-class Jackknife:
+class ResamplerBase(object):
+    def generate_samples(self, data):
+        raise NotImplementedError()
+
+    def calculate_fit_errors(self, central, samples):
+        raise NotImplementedError()
+
+
+class Jackknife(ResamplerBase):
     """
     Jackknife resampler.
 
@@ -50,7 +58,7 @@ class Jackknife:
         return np.sqrt(s)
 
 
-class NoResampler:
+class NoResampler(ResamplerBase):
     """
     Doesn't do any resampling (for testing mainly)
     """

@@ -4,18 +4,22 @@ Common use cases for fitting constructed from base classes in base.py
 from collections import defaultdict
 from functools import partial
 import inspect
-from scipy.optimize import minimize
+from numpy.core.multiarray import ndarray
+from scipy.optimize import minimize, OptimizeResult
 from pyon.lib.fitting.base import FitterBase, FitObjectGeneratorBase, \
-    FitObjectBase, FitResultsBase, FitParams, FitMethodBase
+    FitObjectBase, FitParams, FitMethodBase
 import numpy as np
 from pyon.lib.fitting.util import populate_dict_args, better_arg_spec
-from pyon.lib.resampling import Jackknife
+from pyon.lib.hadron import Hadron
+from pyon.lib.resampling import Jackknife, ResamplerBase
 from pyon.lib.statistics import get_inverse_cov_matrix
 from pyon.lib.structs.errors import ErrorGeneratorBase, OneErrorGeneratorBase
 
 
-def fit_hadron(hadron, initial_value=None, x_range=None, covariant=False,
-               correlated=False, bounds=None, method=None, frozen=True):
+def fit_hadron(hadron: Hadron, initial_value: dict=None, x_range: ndarray=None,
+               covariant: bool=False,
+               correlated: bool=False, bounds: dict=None, method=None,
+               frozen: bool=True) -> FitParams:
     resampler = Jackknife(n=1)
     fit_method = method(hadron.fit_func)
     fitter = create_chi_sq_fitter(hadron.data, x_range, hadron.fit_func,
@@ -25,7 +29,7 @@ def fit_hadron(hadron, initial_value=None, x_range=None, covariant=False,
 
 
 def fit_data(data, x_range, fit_func, initial_value, bounds, frozen=True,
-             covariant=False, correlated=False):
+             covariant=False, correlated=False) -> FitParams:
     """
     Common use case. Jackknife(n=1) resampler, scipy chi-sq fitting.
     """
@@ -37,9 +41,16 @@ def fit_data(data, x_range, fit_func, initial_value, bounds, frozen=True,
     return fitter.fit()
 
 
-def create_chi_sq_fitter(data, x_range, fit_func, initial_value, bounds,
-                         resampler, fit_method, frozen=True, covariant=False,
-                         correlated=False):
+def create_chi_sq_fitter(data: ndarray,
+                         x_range: ndarray,
+                         fit_func: 'callable',
+                         initial_value: dict,
+                         bounds: dict,
+                         resampler: ResamplerBase,
+                         fit_method: FitMethodBase,
+                         frozen: bool=True,
+                         covariant: bool=False,
+                         correlated: bool=False) -> FitParams:
     if covariant:
         one_error_generator = CovariantOneErrorGenerator(correlated)
         fit_object_generator = ChiSqCovariantFitObjectGenerator()
@@ -52,10 +63,16 @@ def create_chi_sq_fitter(data, x_range, fit_func, initial_value, bounds,
     return fitter
 
 
-def create_fitter(data, x_range, fit_func, initial_value, bounds,
-                  resampler, one_error_generator, fit_object_generator,
-                  fit_method, frozen=True):
-
+def create_fitter(data: ndarray,
+                  x_range: ndarray,
+                  fit_func: 'callable',
+                  initial_value: dict,
+                  bounds: dict,
+                  resampler: ResamplerBase,
+                  one_error_generator: OneErrorGeneratorBase,
+                  fit_object_generator: FitObjectGeneratorBase,
+                  fit_method: FitMethodBase,
+                  frozen: bool=True) -> FitParams:
     error_generator = ErrorGenerator(one_error_generator, frozen)
     fitter = Fitter(data, x_range, fit_func, initial_value, bounds, resampler,
                     error_generator, fit_object_generator, fit_method)
@@ -65,13 +82,18 @@ def create_fitter(data, x_range, fit_func, initial_value, bounds,
 class Fitter(FitterBase):
     """
     """
-    def __init__(self, data, x_range, fit_func, initial_value, bounds,
-                 resampler, error_generator,
-                 fit_object_generator, fit_method):
+    def __init__(self, data: ndarray,
+                 x_range: ndarray,
+                 fit_func: 'callable',
+                 initial_value: dict,
+                 bounds: dict,
+                 resampler: ResamplerBase,
+                 error_generator: ErrorGeneratorBase,
+                 fit_object_generator: FitObjectGeneratorBase,
+                 fit_method: FitMethodBase):
         self._data = data
         self._x_range = x_range
         self._fit_func_base = fit_func
-
         self._initial_value = initial_value
         self._bounds = bounds
         self._resampler = resampler
@@ -81,9 +103,9 @@ class Fitter(FitterBase):
         self._central_fit_obj = None  # Set by _prepare()
         self._fit_objects = None  # Set by _prepare()
         self._fit_funcs = None  # Set by _prepare()
-        self._resampled_data = 0  # Set by _prepare_samples()
-        self._ave_resampled = 0  # Set by _prepare_ave_resampled()
-        self._errors = 0  # Set by _prepare_errors()
+        self._resampled_data = np.asarray([])  # Set by _prepare_samples()
+        self._ave_resampled = np.asarray([])  # Set by _prepare_ave_resampled()
+        self._errors = np.asarray([])  # Set by _prepare_errors()
         self._prepare()
 
     def _prepare(self):
@@ -105,7 +127,8 @@ class Fitter(FitterBase):
         self._data = self._data[:, self._x_range]
 
     def _prepare_errors(self):
-        self._errors = self._err_gen.generate_errors(self._resampled_data, self._data)
+        self._errors = self._err_gen.generate_errors(self._resampled_data,
+                                                     self._data)
 
     def _prepare_central_fit_obj(self):
         self._central_fit_obj = self._fit_obj_gen.generate(
@@ -125,7 +148,7 @@ class Fitter(FitterBase):
         self._fit_funcs = [self._fit_func_base for _ in self._data]
         self._central_fit_func = self._fit_func_base
 
-    def fit(self):
+    def fit(self) -> FitParams:
         average_params = self._fit_method.fit_one(self._central_fit_obj,
                                                   self._initial_value,
                                                   self._bounds)
@@ -137,58 +160,48 @@ class Fitter(FitterBase):
         return FitParams(average_params, fit_errors, resampled_params)
 
 
+
 class CovariantOneErrorGenerator(OneErrorGeneratorBase):
-    def __init__(self, correlated=False):
+    def __init__(self, correlated: bool=False):
         self._correlated = correlated
         self._func = partial(get_inverse_cov_matrix,
                              correlated=self._correlated)
 
-    def generate(self, data):
+    def generate(self, data: ndarray) -> ndarray:
         return self._func(data.T)
 
 
 class UncovariantOneErrorGenerator(OneErrorGeneratorBase):
-    def generate(self, data):
+    def generate(self, data: ndarray):
         return np.std(data) / len(data)
 
 
 class ErrorGenerator(ErrorGeneratorBase):
-    def __init__(self, one_error_generator, frozen=True):
+    def __init__(self, one_error_generator: OneErrorGeneratorBase,
+                 frozen: bool=True):
         self._frozen = frozen
         self._one_error_gen = one_error_generator.generate
 
-    def generate_errors(self, data, central_data=None):
+    def generate_errors(self, data: ndarray, central_data: bool=None):
         if self._frozen:
             if central_data is not None:
                 err = self._one_error_gen(central_data)
                 return np.array([err for _ in central_data])
             else:
                 raise NotImplementedError("MEH")
-
-            # #(97, 98, 24)
-            # # TODO: Make sure the columns of data are used - I think this is fixed
-            # err = self._one_error_gen(np.average(data, axis=0))
-            # return np.array([err for _ in data])
         else:
             return np.array([self._one_error_gen(dat) for dat in data])
 
-    def generate_central_error(self, data):
+    def generate_central_error(self, data: ndarray):
         return np.array(self._one_error_gen(data))
-
-
-class FitResults(FitResultsBase):
-    def __init__(self, results):
-        self.results = results
-
-    def get(self):
-        return self.results
 
 
 class ChiSqFitObjectGenerator(FitObjectGeneratorBase):
     """
     TODO: Make this into a function
     """
-    def generate(self, data, errors, fit_func, x_range):
+    def generate(self, data: ndarray, errors: ndarray, fit_func: 'callable',
+                 x_range: ndarray):
         return GenericChi2(data, errors, x_range, fit_func)
 
 
@@ -201,7 +214,10 @@ class ChiSqCovariantFitObjectGenerator(FitObjectGeneratorBase):
 
 
 class GenericChi2(FitObjectBase):
-    def __init__(self, data, errors, x_range, fit_func):
+    def __init__(self, data: ndarray,
+                 errors: ndarray,
+                 x_range: ndarray,
+                 fit_func: 'callable'):
         self.fit_func = fit_func
         # TODO: probably put the eval stuff in a wrapper or function?
 
@@ -216,7 +232,9 @@ class GenericChi2(FitObjectBase):
 
 
 class GenericChi2Covariant(FitObjectBase):
-    def __init__(self, data, inverse_covariance, x_range, fit_func):
+    def __init__(self, data: ndarray, inverse_covariance: ndarray,
+                 x_range: ndarray,
+                 fit_func: 'callable'):
         self.fit_func = fit_func
         self.args = better_arg_spec(fit_func)
         self.data = data
@@ -229,15 +247,14 @@ class GenericChi2Covariant(FitObjectBase):
         m = np.array(self.inverse_cov)
         r = np.dot(m, v)
         c2 = np.dot(v, r)
-        return c2 #/ len(self.x_range)
+        return c2  # / len(self.x_range)
 
 
 class ScipyFitMethod(FitMethodBase):
-    def __init__(self, fit_func):
+    def __init__(self, fit_func: 'callable'):
         self._fit_func = fit_func
-        # self.fval = []  # Set by fit()
 
-    def _convert_initial_value(self, dic):
+    def _convert_initial_value(self, dic: dict) -> list:
         """
         Convert the dict into a list. If we just do dic.values(), the order
         is not deterministic, so do it in the order of the fit function
@@ -247,10 +264,10 @@ class ScipyFitMethod(FitMethodBase):
         initial_value = [dic[k] for k in func_args]
         return initial_value
 
-    def _convert_fit_output(self, out):
+    def _convert_fit_output(self, out: OptimizeResult) -> dict:
         return populate_dict_args(self._fit_func, out.x)
 
-    def fit(self, fit_objs, initial_value, bounds):
+    def fit(self, fit_objs: list, initial_value: dict, bounds: tuple) -> dict:
         initial_value = self._convert_initial_value(initial_value)
         fit_params = defaultdict(list)
         for fit_obj in fit_objs:
@@ -266,7 +283,7 @@ class ScipyFitMethod(FitMethodBase):
         return fit_params
 
 
-def map_fit_params_to_dict(fit_params):
+def map_fit_params_to_dict(fit_params: FitParams) -> dict:
     to_return = {k: FitParams(fit_params.average_params[k],
                               fit_params.errs[k],
                               fit_params.resampled_params[k])
