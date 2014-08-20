@@ -16,9 +16,13 @@ from pyon.lib.statistics import get_inverse_cov_matrix
 from pyon.lib.structs.errors import ErrorGeneratorBase, OneErrorGeneratorBase
 
 
-def fit_hadron(hadron: Hadron, initial_value: dict=None, x_range: ndarray=None,
+def fit_hadron(hadron: Hadron,
+               initial_value: dict=None,
+               x_range: ndarray=None,
                covariant: bool=False,
-               correlated: bool=False, bounds: dict=None, method=None,
+               correlated: bool=False,
+               bounds: dict=None,
+               method=None,
                frozen: bool=True) -> FitParams:
     resampler = Jackknife(n=1)
     fit_method = method(hadron.fit_func)
@@ -28,8 +32,14 @@ def fit_hadron(hadron: Hadron, initial_value: dict=None, x_range: ndarray=None,
     return fitter.fit()
 
 
-def fit_data(data, x_range, fit_func, initial_value, bounds, frozen=True,
-             covariant=False, correlated=False) -> FitParams:
+def fit_data(data: ndarray,
+             x_range: ndarray,
+             fit_func: 'callable',
+             initial_value: dict,
+             bounds: dict,
+             frozen: bool=True,
+             covariant: bool=False,
+             correlated: bool=False) -> FitParams:
     """
     Common use case. Jackknife(n=1) resampler, scipy chi-sq fitting.
     """
@@ -160,7 +170,6 @@ class Fitter(FitterBase):
         return FitParams(average_params, fit_errors, resampled_params)
 
 
-
 class CovariantOneErrorGenerator(OneErrorGeneratorBase):
     def __init__(self, correlated: bool=False):
         self._correlated = correlated
@@ -267,8 +276,12 @@ class ScipyFitMethod(FitMethodBase):
     def _convert_fit_output(self, out: OptimizeResult) -> dict:
         return populate_dict_args(self._fit_func, out.x)
 
-    def fit(self, fit_objs: list, initial_value: dict, bounds: tuple) -> dict:
+    def _convert_bounds(self, bounds: dict) -> tuple:
+        return self._convert_initial_value(bounds)
+
+    def fit(self, fit_objs: list, initial_value: dict, bounds: dict) -> dict:
         initial_value = self._convert_initial_value(initial_value)
+        bounds = self._convert_bounds(bounds)
         fit_params = defaultdict(list)
         for fit_obj in fit_objs:
             # Scipy expects the function to have one argument, so this is a

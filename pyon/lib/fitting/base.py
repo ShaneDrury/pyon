@@ -1,3 +1,4 @@
+from abc import ABCMeta, abstractmethod
 from collections import namedtuple
 import logging
 
@@ -46,6 +47,10 @@ class FitterBase(object):
     """
     Brings together the other fitting classes.
     """
+
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
     def fit(self):
         raise NotImplementedError()
 
@@ -54,6 +59,9 @@ class FitObjectGeneratorBase(object):
     """
     Generates `FitObject`s.
     """
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
     def generate(self, data, errors, fit_func, x_range):
         raise NotImplementedError()
 
@@ -64,6 +72,9 @@ class FitObjectBase(object):
 
     Takes `Data`, `Errors` and `FitFunction` as parameters. Acts as a callable.
     """
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
     def __call__(self, *args, **kwargs):
         raise NotImplementedError()
 
@@ -72,6 +83,9 @@ class FitFunction(object):
     """
     The function to be combined with `Data` and `Errors` to make e.g. chi-sq
     """
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
     def __call__(self, *args, **kwargs):
         raise NotImplementedError()
 
@@ -80,6 +94,9 @@ class FitMethodBase(object):
     """
     Fits a list of `FitObject`s.
     """
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
     def fit(self, fit_objs, initial_value, bounds):
         raise NotImplementedError()
 

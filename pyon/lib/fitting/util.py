@@ -164,15 +164,15 @@ def diff(a, b):
     return [aa for aa in a if aa not in b]
 
 
-class Struct:
-    def __init__(self, **kwds):
-        self.__dict__.update(kwds)
-
-    def __str__(self):
-        return self.__dict__.__str__()
-
-    def __repr__(self):
-        return self.__str__()
-
-    def __getitem__(self, s):
-        return self.__dict__[s]
+# class Struct:
+#     def __init__(self, **kwds):
+#         self.__dict__.update(kwds)
+#
+#     def __str__(self):
+#         return self.__dict__.__str__()
+#
+#     def __repr__(self):
+#         return self.__str__()
+#
+#     def __getitem__(self, s):
+#         return self.__dict__[s]
