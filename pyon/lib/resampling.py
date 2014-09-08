@@ -43,11 +43,11 @@ class Jackknife(ResamplerBase):
             fit_errs[k] = self._jackknife_error(central, samples[k])
         return fit_errs
 
-    def calculate_errors(self, central: float, samples: ndarray):
+    def calculate_errors(self, central: float, samples: list):
         return self._jackknife_error(central, samples)
 
     @staticmethod
-    def _jackknife_error(c: float, samples: ndarray):
+    def _jackknife_error(c: float, samples: list):
         if not isinstance(samples, np.ndarray):
             samples = np.array(samples)
         s = 0.0

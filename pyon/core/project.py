@@ -1,6 +1,7 @@
 import copy
 import hashlib
 import re
+from types import ModuleType
 from django.utils import six
 from jinja2 import Environment, FileSystemLoader, Template
 import pickle

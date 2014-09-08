@@ -235,7 +235,10 @@ class GenericChi2(FitObjectBase):
         self.errors = errors
         self.x_range = x_range
 
-    def __call__(self, *args, **kwargs):
+    def dof(self) -> int:
+        return len(self.x_range) - len(self.args)
+
+    def __call__(self, *args, **kwargs) -> float:
         ff = self.fit_func(self.x_range, *args, **kwargs)
         return sum(((self.data - ff) / self.errors)**2)  # / len(self.x_range)
 
@@ -250,7 +253,10 @@ class GenericChi2Covariant(FitObjectBase):
         self.inverse_cov = inverse_covariance
         self.x_range = x_range
 
-    def __call__(self, *args, **kwargs):
+    def dof(self) -> int:
+        return len(self.x_range) - len(self.args)
+
+    def __call__(self, *args, **kwargs) -> float:
         ff = self.fit_func(self.x_range, *args, **kwargs)
         v = np.array(ff - self.data)
         m = np.array(self.inverse_cov)
@@ -291,7 +297,7 @@ class ScipyFitMethod(FitMethodBase):
             out = minimize(to_fit, initial_value, bounds=bounds)
             for k, v in self._convert_fit_output(out).items():
                 fit_params[k].append(v)
-            c2 = out.fun / (len(fit_obj.x_range) - len(fit_obj.args) + 1)
+            c2 = out.fun / (len(fit_obj.x_range) - len(fit_obj.args))
             fit_params['chi_sq_dof'].append(c2)
         return fit_params
 

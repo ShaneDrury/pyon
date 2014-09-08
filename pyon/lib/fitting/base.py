@@ -1,4 +1,4 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod, abstractproperty
 from collections import namedtuple
 import logging
 
@@ -76,6 +76,10 @@ class FitObjectBase(object):
 
     @abstractmethod
     def __call__(self, *args, **kwargs):
+        raise NotImplementedError()
+
+    @abstractproperty
+    def dof(self) -> int:
         raise NotImplementedError()
 
 

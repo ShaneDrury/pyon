@@ -1,8 +1,9 @@
 import numpy as np
 # Binning functions
+from numpy.core.multiarray import ndarray
 
 
-def bin_data(configs, bin_size):
+def bin_data(configs: list, bin_size: int) -> ndarray:
     """ Averages successive correlators into n_bins bins e.g. n=2 with 4
     samples would give 2 binned samples: Ave(1+2, 3+4)
     """
